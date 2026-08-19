@@ -1,3 +1,4 @@
+import os
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong, PeerIdInvalid
@@ -29,7 +30,22 @@ async def get_ststs(bot, message):
 
 @Client.on_message(filters.command('chats') & filters.user(ADMINS))
 async def list_chats(bot, message):
-        await message.reply_document('chats.txt', caption="List Of Chats")
+    rju = await message.reply("`Processing... Please wait...`")
+    chats = await db.get_all_chats()  
+    file_name = "chats.txt"
+    with open(file_name, "w", encoding="utf-8") as file:
+        file.write("List of Chats/Groups connected to the bot:\n\n")
+        async for chat in chats:
+            chat_id = chat.get('id', 'N/A')
+            chat_title = chat.get('title', 'Unknown Title')
+            file.write(f"Chat Title: {chat_title} | Chat ID: {chat_id}\n")
+    if os.path.exists(file_name):
+        with open(file_name, 'rb') as doc:
+            await message.reply_document(doc, caption="List Of Chats")
+        await rju.delete()
+        os.remove(file_name)
+    else:
+        await rju.edit("Failed to generate chats.txt file!")
 
 
 
