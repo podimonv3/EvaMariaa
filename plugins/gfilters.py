@@ -1,14 +1,8 @@
-# Don't Remove Credit @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot @Tech_VJ
-# Ask Doubt on telegram @KingVJ01
-
 import io
 from info import ADMINS
 from pyrogram import filters, Client, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from database.gfilters_mdb import add_gfilter, get_gfilters, delete_gfilter, count_gfilters
-from database.connections_mdb import active_connection
-from utils import get_file_id, gfilterparser, split_quotes
+from database.gfilters_mdb import add_gfilter, get_gfilters, delete_gfilter, count_gfilters, del_allg
 
 @Client.on_message(filters.command(['add', 'addg']) & filters.incoming & filters.user(ADMINS))
 async def addgfilter(client, message):
@@ -25,9 +19,13 @@ async def addgfilter(client, message):
         await message.reply_text("Add some content to save your filter!", quote=True)
         return
 
+    reply_text = ""
+    btn = []
+    fileid = None
+    alert = None
+
     if (len(extracted) >= 2) and not message.reply_to_message:
         reply_text, btn, alert = gfilterparser(extracted[1], text)
-        fileid = None
         if not reply_text:
             await message.reply_text("You cannot have buttons alone, give some text to go with it!", quote=True)
             return
@@ -39,34 +37,30 @@ async def addgfilter(client, message):
             msg = get_file_id(message.reply_to_message)
             if msg:
                 fileid = msg.file_id
-                reply_text = message.reply_to_message.caption.html
+                reply_text = message.reply_to_message.caption.html if message.reply_to_message.caption else ""
             else:
-                reply_text = message.reply_to_message.text.html
-                fileid = None
-            alert = None
+                reply_text = message.reply_to_message.text.html if message.reply_to_message.text else ""
         except:
-            reply_text = ""
-            btn = "[]" 
-            fileid = None
-            alert = None
+            pass
 
     elif message.reply_to_message and message.reply_to_message.media:
         try:
             msg = get_file_id(message.reply_to_message)
             fileid = msg.file_id if msg else None
-            reply_text, btn, alert = gfilterparser(extracted[1], text) if message.reply_to_message.sticker else gfilterparser(message.reply_to_message.caption.html, text)
+            
+            if message.reply_to_message.sticker:
+                reply_text, btn, alert = gfilterparser(extracted[1], text) if len(extracted) >= 2 else ("", [], None)
+            else:
+                cap = message.reply_to_message.caption.html if message.reply_to_message.caption else ""
+                reply_text, btn, alert = gfilterparser(cap, text)
         except:
-            reply_text = ""
-            btn = "[]"
-            alert = None
+            pass
+
     elif message.reply_to_message and message.reply_to_message.text:
         try:
-            fileid = None
             reply_text, btn, alert = gfilterparser(message.reply_to_message.text.html, text)
         except:
-            reply_text = ""
-            btn = "[]"
-            alert = None
+            pass
     else:
         return
 
@@ -83,12 +77,11 @@ async def addgfilter(client, message):
 async def get_all_gfilters(client, message):
     texts = await get_gfilters('gfilters')
     count = await count_gfilters('gfilters')
+    
     if count:
         gfilterlist = f"Total number of gfilters : {count}\n\n"
-
         for text in texts:
             keywords = " ×  `{}`\n".format(text)
-
             gfilterlist += keywords
 
         if len(gfilterlist) > 4096:
@@ -107,12 +100,13 @@ async def get_all_gfilters(client, message):
         quote=True,
         parse_mode=enums.ParseMode.MARKDOWN
     )
+
         
 @Client.on_message(filters.command('delg') & filters.incoming & filters.user(ADMINS))
 async def deletegfilter(client, message):
     try:
         cmd, text = message.text.split(" ", 1)
-    except:
+    except ValueError:
         await message.reply_text(
             "<i>Mention the gfiltername which you wanna delete!</i>\n\n"
             "<code>/delg gfiltername</code>\n\n"
@@ -122,14 +116,30 @@ async def deletegfilter(client, message):
         return
 
     query = text.lower()
-
     await delete_gfilter(message, query, 'gfilters')
+
 
 @Client.on_message(filters.command('delallg') & filters.user(ADMINS))
 async def delallgfilters(client, message):
     await message.reply_text(
-            f"Do you want to continue??",
-            reply_markup=InlineKeyboardMarkup([
+        "Do you want to continue??",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(text="YES", callback_data="gfilters_del_all")],
+            [InlineKeyboardButton(text="CANCEL", callback_data="gfilters_del_cancel")]
+        ]),
+        quote=True
+    )
+
+@Client.on_callback_query(filters.regex("gfilters_del_all"))
+async def dellacbd(client, callback_query):
+    await del_allg(callback_query.message, 'gfilters')
+    await callback_query.answer("👍 Done", show_alert=True)
+    await callback_query.message.edit_text("🗑️ All global filters deleted successfully!")
+
+@Client.on_callback_query(filters.regex("gfilters_del_cancel"))
+async def cancel_delall(client, callback_query):
+    await callback_query.answer("Cancelled")
+    await callback_query.message.edit_text("❌ Action cancelled.")
                 [InlineKeyboardButton(text="YES",callback_data="gfiltersdeleteallconfirm")],
                 [InlineKeyboardButton(text="CANCEL",callback_data="gfiltersdeleteallcancel")]
             ]),
