@@ -86,8 +86,8 @@ async def send_file(client, query, ident, file_id):
         protect_content=True if ident == 'checksubp' else False,
         reply_markup=reply_markup
     )  
-    k = await ok.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\n📘ᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\n📘ഈ ഫയൽ 10 മിനുട്ടിനുള്ളിൽ ഇവിടെ നിന്നും ഡിലീറ്റ് ആകുന്നതാണ്... ഫയൽ എവിടെങ്കിലും Forward ചെയ്ത് Download ചെയ്യുക 🤌</i></b></blockquote>")
-    await asyncio.sleep(600)
+    k = await ok.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\nഈ ഫയൽ എവിടേക്കെങ്കിലും/ആർക്കെങ്കിലും അയച്ചു കൊടുത്തിട്ടു വേണേ download ചെയ്യാൻ അല്ലേൽ ഇവിടെ നിന്നും delete ആകും</i></b></blockquote>")
+    await asyncio.sleep(300)
     await ok.delete()
     await k.delete()
    
@@ -95,27 +95,25 @@ async def send_file(client, query, ident, file_id):
 async def start(client, message):   
     if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
         buttons = [
-                InlineKeyboardButton('⛏️ ഉർവശി തീയറ്റേഴ്‌സ് ⛏️', url=f'https://t.me/+VqyHBSateMcwNjU9')
+            [InlineKeyboardButton('📣 ഉർവശി തീയറ്റേഴ്‌സ് 📣', url='https://t.me')]
         ]       
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply(script.START_TXT.format(message.from_user.mention if message.from_user else message.chat.title, temp.U_NAME, temp.B_NAME), reply_markup=reply_markup)
-        await asyncio.sleep(2) # 😢 https://github.com/EvamariaTG/EvaMaria/blob/master/plugins/p_ttishow.py#L17 😬 wait a bit, before checking.
+        await asyncio.sleep(2)         
         if not await db.get_chat(message.chat.id):
-            total=await client.get_chat_members_count(message.chat.id)
-            await client.send_message(LOG_CHANNEL, script.LOG_TEXT_G.format(message.chat.title, message.chat.id, total, "Unknown"))       
             await db.add_chat(message.chat.id, message.chat.title)
-        return 
-    if not await db.is_user_exist(message.from_user.id):
-        await db.add_user(message.from_user.id, message.from_user.first_name)
-        await client.send_message(LOG_CHANNEL, script.LOG_TEXT_P.format(message.from_user.id, message.from_user.mention))
+        return         
+    if not await db.is_user_exist(message.from_user.id):        
+        await db.add_user(message.from_user.id, message.from_user.first_name)        
     if len(message.command) != 2:
         buttons = [
-                InlineKeyboardButton('⛏️ ഉർവശി തീയറ്റേഴ്‌സ് ⛏️', url=f'https://t.me/+VqyHBSateMcwNjU9')
-        ]            
+            [InlineKeyboardButton('📣 ഉർവശി തീയറ്റേഴ്‌സ് 📣', url='https://t.me')]
+        ]       
         reply_markup = InlineKeyboardMarkup(buttons)
-        await message.reply_video(  
-            video="https://envs.sh/2TO.mp4",          
-            caption=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),            
+        await message.reply_photo(
+            photo=random.choice(PICS),
+            caption=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
+            reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
         )
         return
@@ -193,13 +191,13 @@ async def start(client, message):
         await auto_filter(client, message) 
         return
          
-    if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:
+    if len(message.command) == 2 and message.command[1] in ["subscribe", "error", "okay", "help"]:       
         buttons = [
-                InlineKeyboardButton('⛏️ ഉർവശി തീയറ്റേഴ്‌സ് ⛏️', url=f'https://t.me/+VqyHBSateMcwNjU9')
+            [InlineKeyboardButton('📣 ഉർവശി തീയറ്റേഴ്‌സ് 📣', url='https://t.me/+xlFmD30B2b9jNjQ1')]
         ]       
         reply_markup = InlineKeyboardMarkup(buttons)
-        await message.reply_video(     
-            video="https://envs.sh/2TO.mp4",    
+        await message.reply_photo(
+            photo=random.choice(PICS),
             caption=script.START_TXT.format(message.from_user.mention, temp.U_NAME, temp.B_NAME),
             reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML
@@ -351,8 +349,8 @@ async def start(client, message):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('🌀 ഉർവശി തീയറ്റേഴ്‌സ് 🌀', url='https://t.me/+RBNuafky0to1NDc1')            
             ]])
     )
-    k = await xd.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\n📘ᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\n📘ഈ ഫയൽ 10 മിനുട്ടിനുള്ളിൽ ഇവിടെ നിന്നും ഡിലീറ്റ് ആകുന്നതാണ്... ഫയൽ എവിടെങ്കിലും Forward ചെയ്ത് Download ചെയ്യുക 🤌</i></b></blockquote>")
-    await asyncio.sleep(600)
+    k = await xd.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\nഫയൽ എവിടേക്കെങ്കിലും/ആർക്കെങ്കിലും അയച്ചു കൊടുത്ത ശേഷം download ചെയ്യുക... അല്ലാത്ത പക്ഷം ഫയൽ delete ആകുന്നതാണ്</i></b></blockquote>")
+    await asyncio.sleep(300)
     await xd.delete()
     await k.delete()
     
