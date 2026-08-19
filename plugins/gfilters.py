@@ -140,13 +140,8 @@ async def dellacbd(client, callback_query):
 async def cancel_delall(client, callback_query):
     await callback_query.answer("Cancelled")
     await callback_query.message.edit_text("❌ Action cancelled.")
-                [InlineKeyboardButton(text="YES",callback_data="gfiltersdeleteallconfirm")],
-                [InlineKeyboardButton(text="CANCEL",callback_data="gfiltersdeleteallcancel")]
-            ]),
-            quote=True
-        )
+
 @Client.on_callback_query(filters.regex("gconforme"))
 async def dellacbd(client, message):
     await del_allg(message.message, 'gfilters')
     return await message.reply("👍 Done")
-    
