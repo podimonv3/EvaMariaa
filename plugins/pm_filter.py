@@ -4,6 +4,7 @@ import re
 import random
 import ast
 import math
+import urllib.parse
 from pyrogram.errors.exceptions.bad_request_400 import MediaEmpty, PhotoInvalidDimensions, WebpageMediaEmpty
 from Script import script
 import pyrogram
@@ -38,6 +39,30 @@ GENRES = ["fun, fact",
           "Film Noir",
           "Documentary"]
 
+
+@Client.on_message(filters.private & filters.text & filters.incoming)
+async def pm_text(bot: Client, message):
+    content = message.text
+    user_id = message.from_user.id
+    user = message.from_user.first_name or "User"
+    if content.startswith("/") or content.startswith("#"): return  
+    if user_id in ADMINS: return 
+    reply_msg = await message.reply_text(
+         text=f"<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",   
+         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚫ANY ERROR🚫 ", url=f"https://t.me/+VqyHBSateMcwNjU9")]])
+    )
+    await bot.send_message(
+        chat_id=LOG_CHANNEL,
+        text=f"<b># can_PM_MSG\n\nNᴀᴍᴇ : {user}\n\nID : {user_id}\n\nMᴇssᴀɢᴇ : {content}</b>"
+    )
+    await asyncio.sleep(30)
+    try:
+        await message.delete()    
+        await reply_msg.delete()   
+    except Exception as e:
+        print(f"Error deleting message: {e}")
+
+    
 @Client.on_message(filters.text & filters.incoming)
 async def give_filters(client, message):
     k = await global_filters(client, message)    
@@ -127,34 +152,37 @@ async def next_page(bot, query):
 
 @Client.on_callback_query(filters.regex(r"^spolling"))
 async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split('#')
+    _, user, movie_ = query.data.split('#')  
     if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer("Search Your Own", show_alert=True)
+        return await query.answer("Search Your Own", show_alert=True)        
     if movie_ == "close_spellcheck":
-        return await query.message.delete()
+        return await query.message.delete()        
+    if not query.message.reply_to_message:
+        return await query.answer("Original message not found.", show_alert=True)        
     movies = SPELL_CHECK.get(query.message.reply_to_message.id)
     if not movies:
-        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)
-    movie = movies[(int(movie_))]
-    await query.answer('Checking for Movie in database...')
-    k = await global_filters(bot, query.message, text=movie)
-    if k == False:
+        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)        
+    movie = movies[int(movie_)]
+    await query.answer('Checking for Movie in database...')    
+    k = await global_filters(bot, query.message, text=movie)    
+    if k is False:
         files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
         if files:
             k = (movie, files, offset, total_results)
-            await auto_filter(bot, query, k)               
-        else:            
-            buttons = [[
-            InlineKeyboardButton('🇮🇳 UPDATES 🇮🇳', url='https://t.me/UrvashiTheaters_Main')
-            ]]
-            reply_markup=InlineKeyboardMarkup(buttons)
-            
-            reqstr1 = query.from_user.id if query.from_user else 0
-            reqstr = await bot.get_users(reqstr1)
-            await bot.send_message(chat_id=NORES_CHANNEL, text=(script.NORSLTS.format(reqstr.id, reqstr.mention, movie)))
+            await auto_filter(bot, query.message, k)               
+        else:        
+            reqst_gle = urllib.parse.quote_plus(mv_rqst)
+            buttons = [
+                [
+                    InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")                    
+                ],
+                [
+                    InlineKeyboardButton('💬 Request To Admin 💬', url='https://t.me/+VqyHBSateMcwNjU9')
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(buttons)                               
             k = await query.message.edit_text(text=script.MOVREQ_TXT, reply_markup=reply_markup)
             await asyncio.sleep(30)
-            await k.delete()
 
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
@@ -622,39 +650,7 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|Veno|und|new movie|move|Hd|Malayalam|Tamil|Telugu|Kannada|English|punjabi|multi|dubb|dub|bro|bruh|broh|helo|that|find|dubbed|link|venum|iruka|pannunga|pannungga|anuppunga|anupunga|anuppungga|anupungga|film|subtile|undo|kitti|kitty|tharu|kittumo|kittum|movie|any(one)|with\ssubtitle(s)?)", "", search, flags=re.IGNORECASE)
             search = re.sub(r"\s+", " ", search).strip()
             search = search.replace("-", "") 
-            search = search.replace("'", " ")
-            search = search.replace("'", "") 
-            search = search.replace("-", " ")
-            search = search.replace(":", "")
-            search = search.replace(":", " ")
-            search = search.replace("`", "")
-            search = search.replace("`", " ")
-            search = search.replace("&", "")
-            search = search.replace("&", " ")
-            search = search.replace("!", "")
-            search = search.replace("!", " ")
-            search = search.replace("/", "")
-            search = search.replace("/", " ")       
-            search = search.replace("?", "")
-            search = search.replace("?", " ")
-            search = search.replace("@", "")
-            search = search.replace("@", " ")           
-            search = search.replace("#", "")
-            search = search.replace("#", " ")
-            search = search.replace("%", "")
-            search = search.replace("%", " ")          
-            search = search.replace("()", "")
-            search = search.replace("()", " ")
-            search = search.replace("[]", "")
-            search = search.replace("[]", " ")
-            search = search.replace(",", "")
-            search = search.replace(",", " ")          
-            search = search.replace("_", "")
-            search = search.replace("_", " ")
-            search = search.replace(";", "")
-            search = search.replace(";", " ")
-            search = search.replace(".", "")
-            search = search.replace(".", " ")
+            search = search.replace("'", " ")            
             files, offset, total_results = await get_search_results(search.lower(), offset=0, filter=True)
             if not files:
                 if settings["spell_check"]:
@@ -774,48 +770,48 @@ async def auto_filter(client, msg, spoll=False):
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text
-    reqstr1 = msg.from_user.id if msg.from_user else 0
-    reqstr = await client.get_users(reqstr1)
-    settings = await get_settings(msg.chat.id)
+    reqstr1 = msg.from_user.id if msg.from_user else 0    
     query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
-        "", msg.text, flags=re.IGNORECASE)  # plis contribute some common words
-    query = query.strip() + " movie"
+        "", msg.text, flags=re.IGNORECASE)
+    query = query.strip() + " movie"    
     try:
         movies = await get_poster(mv_rqst, bulk=True)
     except Exception as e:
         logger.exception(e)
-        reqst_gle = mv_rqst.replace(" ", "+")
-        button = [[
-        InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")            
-        ]]
-        await client.send_message(chat_id=NORES_CHANNEL2, text=(script.NORSLTS.format(reqstr.id, reqstr.mention, mv_rqst)))
+        reqst_gle = urllib.parse.quote_plus(mv_rqst)        
+        button = [
+            [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
+            [         
+                InlineKeyboardButton('📢 request here', url="https://t.me/+VqyHBSateMcwNjU9")
+            ]
+        ]        
         k = await msg.reply_text(
-            text=("<b><blockquote>▪sᴏʀʀʏ ɴᴏ ꜰɪʟᴇs ᴡᴇʀᴇ ꜰᴏᴜɴᴅ\n\nᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ ɪɴ ɢᴏᴏɢʟᴇ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ !!</b>\n\n🚸 ʏᴏᴜʀ ʀᴇQᴜᴇꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴇɴᴛ ᴛᴏ ᴏᴜʀ ᴍᴏᴅᴇʀᴀᴛᴏʀꜱ ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ ꜰᴏʀ ᴜᴘʟᴏᴀᴅ ᴏʀ ʀᴇᴘʟᴀʏ</blockquote></b>"),
+            text=(script.MOVREQ_TXT),
             reply_markup=InlineKeyboardMarkup(button),
             reply_to_message_id=msg.id
         )
-        await asyncio.sleep(30)
-        await msg.delete()
+        await asyncio.sleep(30)        
         await k.delete()      
-        return
+        return        
     movielist = []
     if not movies:
-        reqst_gle = mv_rqst.replace(" ", "+")
-        button = [[
-        InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")   
-        ]]
-        await client.send_message(chat_id=NORES_CHANNEL2, text=(script.NORSLTS.format(reqstr.id, reqstr.mention, mv_rqst)))
+        reqst_gle = urllib.parse.quote_plus(mv_rqst)        
+        button = [
+            [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
+            [                
+                InlineKeyboardButton('📢 request here2', url="https://t.me/+VqyHBSateMcwNjU9")
+            ]
+        ]        
         k = await msg.reply_text(
-            text=(f"<b><blockquote>sᴏʀʀʏ ɴᴏ ꜰɪʟᴇs ᴡᴇʀᴇ ꜰᴏᴜɴᴅ\n\nᴄʜᴇᴄᴋ ʏᴏᴜʀ sᴘᴇʟʟɪɴɢ ɪɴ ɢᴏᴏɢʟᴇ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ !!</b>\n\n🚸 ʏᴏᴜʀ ʀᴇQᴜᴇꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴇɴᴛ ᴛᴏ ᴏᴜʀ ᴍᴏᴅᴇʀᴀᴛᴏʀꜱ ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ ꜰᴏʀ ᴜᴘʟᴏᴀᴅ ᴏʀ ʀᴇᴘʟᴀʏ</blockquote></b>"),
+            text=(script.MOVREQ_TXT),
             reply_markup=InlineKeyboardMarkup(button),
             reply_to_message_id=msg.id
         )
         await asyncio.sleep(30)
-        await msg.delete()
         await k.delete()
-        return
-    movielist = [movie.get('title') for movie in movies]
+        return        
+    movielist += [f"{movie.get('title')}" for movie in movies]
     SPELL_CHECK[mv_id] = movielist
     btn = [
         [
@@ -827,6 +823,7 @@ async def advantage_spell_chok(client, msg):
         for k, movie_name in enumerate(movielist)
     ]
     btn.append([InlineKeyboardButton(text="✘ ᴄʟᴏsᴇ ✘", callback_data=f'spolling#{reqstr1}#close_spellcheck')])
+    
     spell_check_del = await msg.reply_text(
         text="I Cᴏᴜʟᴅɴ'ᴛ Fɪɴᴅ Aɴʏᴛʜɪɴɢ Rᴇʟᴀᴛᴇᴅ Tᴏ Tʜᴀᴛ. Dɪᴅ Yᴏᴜ Mᴇᴀɴ Aɴʏ Oɴᴇ Oғ Tʜᴇsᴇ?",
         reply_markup=InlineKeyboardMarkup(btn),
@@ -834,7 +831,6 @@ async def advantage_spell_chok(client, msg):
     )
     await asyncio.sleep(60)
     await spell_check_del.delete()
-    await msg.delete()
 
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
