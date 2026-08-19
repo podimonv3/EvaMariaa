@@ -858,7 +858,7 @@ async def global_filters(client, message, text=False):
             # സുരക്ഷാ വരി: reply_text ശൂന്യമാണോ എന്ന് പരിശോധിക്കുന്നു. 
             # ശൂന്യമാണെങ്കിൽ എറർ വരാതിരിക്കാൻ ഒരു ഡിഫോൾട്ട് മെസ്സേജ് നൽകുന്നു.
             if not reply_text or not reply_text.strip():
-                reply_text = f"Filter triggered for: {keyword}"
+                reply_text = f"<blockquote><b>🫴നിങ്ങളുടെ മെസ്സേജ് അസാധുവെക്കപ്പെട്ടു...\n🫴Your Message was CancelleD</blockquote></b>\n\n<b><i>🚫Reasons/കാരണങ്ങൾ🚫</b></i>\n<b>🫴symbols like +, :, ;, ', !, -, |,&%#₹@ etc.Used\n✅Remove Symbols And Try Again\n\nDeadpool & Wolverine❌\nDeadpool wolverine✅\nBalan: The boy❌\nBalan the Boy✅</b>"
 
             if btn is not None:
                 try:
