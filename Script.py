@@ -1,9 +1,10 @@
 class script(object):
-    START_TXT = """<b><blockquote>ʜᴇʟʟᴏ {}👋,</blockquote></b>
-    
-<b>⚔️Powerful people come from powerful places. If you gain courage because a thousand people are standing behind you, then you can only win a war. But if a thousand people get courage because you are standing in front of them, you can conquer the world.</b>
+    START_TXT = """<blockquote>Hello {},</blockquote>
 
-<b><a href=https://t.me/UrvashiTheaters_Main>©𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</a></b>"""
+<i>➤ Just add me to your group as an admin.  
+➤ I’ll automatically respond with movies when someone searches.</i>
+
+<b>⚡Powered by ➤ <i><a href=https://t.me/UrvashiTheaters_Main>©𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</a></i></b>"""
 
     STATUS_TXT = """★ 𝚃𝙾𝚃𝙰𝙻 𝙵𝙸𝙻𝙴𝚂: <code>{}</code>
 ★ 𝚃𝙾𝚃𝙰𝙻 𝚄𝚂𝙴𝚁𝚂: <code>{}</code>
