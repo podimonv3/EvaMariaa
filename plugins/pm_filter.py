@@ -789,7 +789,7 @@ async def advantage_spell_chok(client, msg):
         button = [
             [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [         
-                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Movieurvashifilebot")
+                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Urvashi_Theaters_bot")
             ]
         ]        
         k = await msg.reply_text(
@@ -806,7 +806,7 @@ async def advantage_spell_chok(client, msg):
         button = [
             [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [                
-                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Movieurvashifilebot")
+                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Urvashi_Theaters_bot")
             ]
         ]        
         k = await msg.reply_text(
