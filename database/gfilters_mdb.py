@@ -9,7 +9,6 @@ myclient = pymongo.MongoClient(DATABASE_URI)
 mydb = myclient[DATABASE_NAME]
 
 
-
 async def add_gfilter(gfilters, text, reply_text, btn, file, alert):
     mycol = mydb[str(gfilters)]
     # mycol.create_index([('text', 'text')])
@@ -34,6 +33,7 @@ async def find_gfilter(gfilters, name):
     query = mycol.find( {"text":name})
     # query = mycol.find( { "$text": {"$search": name}})
     try:
+        reply_text, btn, alert, fileid = None, None, None, None
         for file in query:
             reply_text = file['reply']
             btn = file['btn']
@@ -91,8 +91,7 @@ async def del_allg(message, gfilters):
 
 async def count_gfilters(gfilters):
     mycol = mydb[str(gfilters)]
-
-    count = mycol.count()
+    count = mycol.count_documents({})
     return False if count == 0 else count
 
 
@@ -104,8 +103,8 @@ async def gfilter_stats():
 
     totalcount = 0
     for collection in collections:
-        mycol = mydb[collection]
-        count = mycol.count()
+        mycol = mydb[collection]      
+        count = mycol.count_documents({})
         totalcount += count
 
     totalcollections = len(collections)
