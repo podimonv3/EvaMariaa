@@ -1,8 +1,16 @@
 import io
+import re
 from info import ADMINS
 from pyrogram import filters, Client, enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from database.gfilters_mdb import add_gfilter, get_gfilters, delete_gfilter, count_gfilters, del_allg
+
+
+def split_quotes(text: str):
+    if not text:
+        return []
+    return re.findall(r'"([^"]*)"|\S+', text)
+
 
 @Client.on_message(filters.command(['add', 'addg']) & filters.incoming & filters.user(ADMINS))
 async def addgfilter(client, message):
