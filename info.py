@@ -31,9 +31,6 @@ AUTH_USERS = (auth_users + ADMINS) if auth_users else []
 auth_grp = environ.get('AUTH_GROUP')
 AUTH_GROUPS = [int(ch) for ch in auth_grp.split()] if auth_grp else None
 
-NORES_CHANNEL = environ.get("NORES_CHANNEL", '-1002582974933')
-NORES_CHANNEL2 = environ.get("NORES_CHANNEL2", '-1002808467705')
-
 REQ_CHANNEL1=environ.get("REQ_CHANNEL1")
 REQ_CHANNEL1 = (int(REQ_CHANNEL1) if REQ_CHANNEL1 and id_pattern.search(REQ_CHANNEL1) else False) if REQ_CHANNEL1 is not None else None
 REQ_CHANNEL2=environ.get("REQ_CHANNEL2")
