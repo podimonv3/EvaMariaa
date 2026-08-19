@@ -841,8 +841,12 @@ async def advantage_spell_chok(client, msg):
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
     name = text or message.text
+    if not name:
+        return False  # മെസ്സേജിൽ ടെക്സ്റ്റ് ഇല്ലെങ്കിൽ ഫിൽട്ടർ ചെയ്യേണ്ടതില്ല
+
     reply_id = message.reply_to_message.id if message.reply_to_message else message.id
     keywords = await get_gfilters('gfilters')
+    
     for keyword in reversed(sorted(keywords, key=len)):
         pattern = r"( |^|[^\w])" + re.escape(keyword) + r"( |$|[^\w])"
         if re.search(pattern, name, flags=re.IGNORECASE):
@@ -850,6 +854,11 @@ async def global_filters(client, message, text=False):
 
             if reply_text:
                 reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
+
+            # സുരക്ഷാ വരി: reply_text ശൂന്യമാണോ എന്ന് പരിശോധിക്കുന്നു. 
+            # ശൂന്യമാണെങ്കിൽ എറർ വരാതിരിക്കാൻ ഒരു ഡിഫോൾട്ട് മെസ്സേജ് നൽകുന്നു.
+            if not reply_text or not reply_text.strip():
+                reply_text = f"Filter triggered for: {keyword}"
 
             if btn is not None:
                 try:
@@ -882,7 +891,7 @@ async def global_filters(client, message, text=False):
                         knd1 = await client.send_cached_media(
                             group_id,
                             fileid,
-                            caption=reply_text or "",
+                            caption=reply_text,
                             reply_to_message_id=reply_id
                         )
                         await asyncio.sleep(30)
@@ -893,7 +902,7 @@ async def global_filters(client, message, text=False):
                         button = eval(btn)
                         knd = await message.reply_cached_media(
                             fileid,
-                            caption=reply_text or "",
+                            caption=reply_text,
                             reply_markup=InlineKeyboardMarkup(button),
                             reply_to_message_id=reply_id
                         )
@@ -906,6 +915,7 @@ async def global_filters(client, message, text=False):
                 break
     else:
         return False
+
         
 async def manual_filters(client, message, text=False):
     group_id = message.chat.id
