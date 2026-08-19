@@ -49,18 +49,24 @@ async def pm_text(bot: Client, message):
     if user_id in ADMINS: return 
     reply_msg = await message.reply_text(
          text=f"<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",   
-         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚫ANY ERROR🚫 ", url=f"https://t.me/+VqyHBSateMcwNjU9")]])
-    )
+         reply_markup=InlineKeyboardMarkup([
+             [InlineKeyboardButton("🚫 ANY ERROR REPORT 🚫 ", url="https://t.me/Adhityan_edavattom")],
+             [InlineKeyboardButton("🚸 MUST READ 🚸", url="https://telegra.ph/Request-അയകക-മനന-വയകകണടനനത-08-19")] 
+         ])
+    )    
     await bot.send_message(
         chat_id=LOG_CHANNEL,
-        text=f"<b># can_PM_MSG\n\nNᴀᴍᴇ : {user}\n\nID : {user_id}\n\nMᴇssᴀɢᴇ : {content}</b>"
-    )
-    await asyncio.sleep(30)
+        text=f"<b># can_PM_MSG\n\nNᴀᴍᴇ : {user}\n\nID : {user_id}\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>"
+    )    
+    await asyncio.sleep(30)    
     try:
-        await message.delete()    
-        await reply_msg.delete()   
+        await bot.delete_messages(
+            chat_id=message.chat.id, 
+            message_ids=[message.id, reply_msg.id]
+        )    
     except Exception as e:
-        print(f"Error deleting message: {e}")
+        print(f"Error deleting messages: {e}")
+
 
     
 @Client.on_message(filters.text & filters.incoming)
@@ -177,7 +183,7 @@ async def advantage_spoll_choker(bot, query):
                     InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")                    
                 ],
                 [
-                    InlineKeyboardButton('💬 Request To Admin 💬', url='https://t.me/+VqyHBSateMcwNjU9')
+                    InlineKeyboardButton('💬 Request To Admin 💬', url='http://t.me/Urvashi_Theaters_bot')
                 ]
             ]
             reply_markup = InlineKeyboardMarkup(buttons)                               
@@ -412,7 +418,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
     elif query.data.startswith("checksub"):
         if REQ_CHANNEL1 and not await is_requested_one(client, query):
-            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ I&II🚸 Buttons Then Click 🔄 Try Again 🔄", show_alert=True)
+            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ I&II🚸 Buttons Then Click 🔄 ᴛʀʏ ᴀɢᴀɪɴ 🔄", show_alert=True)
             return
         if REQ_CHANNEL2 and not await is_requested_two(client, query):
             await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ II🚸 🍃𝖩𝗈𝗂𝗇 𝖥𝗂𝗋𝗌𝗍 & 𝖲𝖾𝖼𝗈𝗇𝖽 𝖢𝗁𝖺𝗇𝗇𝖾𝗅 𝗔𝗳𝘁𝗲𝗿 5𝘀𝗲𝗰🍃", show_alert=True)
@@ -444,7 +450,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             protect_content=True if ident == "checksubp" else False,
             reply_markup=InlineKeyboardMarkup(
                [[
-                InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+RBNuafky0to1NDc1')            
+                InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+xlFmD30B2b9jNjQ1')            
                ]]
             )  
         )
@@ -456,7 +462,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
         if title and any(keyword in title.lower() for keyword in ['predvd', 'predvdrip']):
             f_caption += "\n⚠️<b><i>ഈ മൂവിയുടെ ഫയൽ എവിടെയെങ്കിലും ഫോർവേഡ് ചെയ്തു വെക്കുക എന്നിട്ട് ഡൗൺലോഡ് ചെയ്യുക\n\n3 മിനിറ്റിൽ ഇവിടുന്ന് ഡിലീറ്റ് ആവും🗑\n\n⚠️Forward the file of this Movie somewhere and download it\n\nWill be deleted from here in 3 minutes🗑</i></b>"
             inline_keyboard = [[
-            InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+RBNuafky0to1NDc1')
+            InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+xlFmD30B2b9jNjQ1')
             ]]
             reply_markup = InlineKeyboardMarkup(inline_keyboard)
             await xd.edit_caption(caption=f_caption, reply_markup=reply_markup)
@@ -507,7 +513,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
     
     elif query.data == "start":
         buttons = [
-               InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url=f'https://t.me/+RBNuafky0to1NDc1')               
+               InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url=f'https://t.me/+xlFmD30B2b9jNjQ1')               
         ]       
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -744,7 +750,7 @@ async def auto_filter(client, msg, spoll=False):
             **locals()
         )
     else:
-        cap = f"<b><i><blockquote>►Film : {search}\n►Rating : {random.choice(RATING)}\n►Genre : {random.choice(GENRES)}\n►Result : {total_results}</i></blockquote></b>\n\n<b><i>©𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</i></b>"         
+        cap = f"<b><i><blockquote>►Film : {search}\n►Rating : {random.choice(RATING)}\n►Genre : {random.choice(GENRES)}</i></blockquote></b>\n<b><i>©𝐓𝐞𝐚𝐦 𝐔𝐫𝐯𝐚𝐬𝐡𝐢 𝐓𝐡𝐞𝐚𝐭𝐞𝐫𝐬™️</i></b>"         
     if imdb and imdb.get('poster'):
         try:
             fmsg = await message.reply_photo(photo=imdb.get('poster'), caption=cap[:1024],
@@ -759,7 +765,7 @@ async def auto_filter(client, msg, spoll=False):
     else:
          fmsg = await message.reply_text(cap, reply_markup=InlineKeyboardMarkup(btn))
        
-    await asyncio.sleep(600)
+    await asyncio.sleep(300)
     await fmsg.delete()
     
     if spoll:
@@ -783,7 +789,7 @@ async def advantage_spell_chok(client, msg):
         button = [
             [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [         
-                InlineKeyboardButton('📢 request here', url="https://t.me/+VqyHBSateMcwNjU9")
+                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Movieurvashifilebot")
             ]
         ]        
         k = await msg.reply_text(
@@ -800,7 +806,7 @@ async def advantage_spell_chok(client, msg):
         button = [
             [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [                
-                InlineKeyboardButton('📢 request here2', url="https://t.me/+VqyHBSateMcwNjU9")
+                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Movieurvashifilebot")
             ]
         ]        
         k = await msg.reply_text(
@@ -855,7 +861,7 @@ async def global_filters(client, message, text=False):
                                 disable_web_page_preview=True,
                                 reply_to_message_id=reply_id
                             )
-                            await asyncio.sleep(60)
+                            await asyncio.sleep(30)
                             await knd3.delete()
                             await message.delete()
 
@@ -868,7 +874,7 @@ async def global_filters(client, message, text=False):
                                 reply_markup=InlineKeyboardMarkup(button),
                                 reply_to_message_id=reply_id
                             )
-                            await asyncio.sleep(60)
+                            await asyncio.sleep(30)
                             await knd2.delete()
                             await message.delete()
 
@@ -879,7 +885,7 @@ async def global_filters(client, message, text=False):
                             caption=reply_text or "",
                             reply_to_message_id=reply_id
                         )
-                        await asyncio.sleep(60)
+                        await asyncio.sleep(30)
                         await knd1.delete()
                         await message.delete()
 
@@ -891,7 +897,7 @@ async def global_filters(client, message, text=False):
                             reply_markup=InlineKeyboardMarkup(button),
                             reply_to_message_id=reply_id
                         )
-                        await asyncio.sleep(60)
+                        await asyncio.sleep(30)
                         await knd.delete()
                         await message.delete()
 
