@@ -161,7 +161,7 @@ async def next_page(bot, query):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                    text=f"{get_size(file.file_size)}►{file.file_name}", callback_data=f'files#{file.file_id}'
                 ),
             ]
             for file in files
@@ -256,7 +256,7 @@ async def advantage_spoll_choker(bot, query):
                 InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")                    
             ],
             [
-                InlineKeyboardButton('💬 Request To Admin 💬', url='http://t.me/Urvashi_Theaters_bot')
+                InlineKeyboardButton('💬 Request To Admin 💬', url='http://t.me/Promoviesearcherbot')
             ]
         ]
         reply_markup = InlineKeyboardMarkup(buttons)                               
@@ -492,10 +492,10 @@ async def cb_handler(client: Client, query: CallbackQuery):
             await query.answer(url=f"https://t.me/{temp.U_NAME}?start={ident}_{file_id}")
     elif query.data.startswith("checksub"):
         if REQ_CHANNEL1 and not await is_requested_one(client, query):
-            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ I&II🚸 Buttons Then Click 🔄 ᴛʀʏ ᴀɢᴀɪɴ 🔄", show_alert=True)
+            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ I&II🚸 Buttons Then Click 🔃 ᴛʀʏ ᴀɢᴀɪɴ 🔃", show_alert=True)
             return
         if REQ_CHANNEL2 and not await is_requested_two(client, query):
-            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ II🚸 🍃𝖩𝗈𝗂𝗇 𝖥𝗂𝗋𝗌𝗍 & 𝖲𝖾𝖼𝗈𝗇𝖽 𝖢𝗁𝖺𝗇𝗇𝖾𝗅 𝗔𝗳𝘁𝗲𝗿 5𝘀𝗲𝗰🍃", show_alert=True)
+            await query.answer("Click 🚸 ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ II🚸 🍃𝖩𝗈𝗂𝗇 𝖥𝗂𝗋𝗌𝗍 & 𝖲𝖾𝖼𝗈𝗇𝖽 𝖢𝗁𝖺𝗇𝗇𝖾𝗅 𝗔𝗳𝘁𝗲𝗿 3𝘀𝗲𝗰🍃", show_alert=True)
             return
         ident, file_id = query.data.split("#")
         files_ = await get_file_details(file_id)
@@ -766,7 +766,7 @@ async def auto_filter(client, msg, spoll=False):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'{pre}#{file.file_id}'
+                    text=f"{get_size(file.file_size)}►{file.file_name}", callback_data=f'{pre}#{file.file_id}'
                 ),
             ]
             for file in files
@@ -796,7 +796,7 @@ async def auto_filter(client, msg, spoll=False):
     
     if offset == 0:
         btn.append(
-            [InlineKeyboardButton(text="1/1", callback_data="pages")]
+            [InlineKeyboardButton(text="🍃 ഉർവശി തീയറ്റേഴ്‌സ് 🍃", url="https://t.me/+eb__Eg3RS2IyZWQ1")]
         )
     else:
         key = f"{message.chat.id}-{message.id}"
@@ -879,7 +879,7 @@ async def advantage_spell_chok(client, msg):
         button = [
             [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [         
-                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Urvashi_Theaters_bot")
+                InlineKeyboardButton('📢 Request here 📢', url="http://t.me/Promoviesearcherbot")
             ]
         ]        
         k = await msg.reply_text(
@@ -898,9 +898,9 @@ async def advantage_spell_chok(client, msg):
     if not movies:
         reqst_gle = urllib.parse.quote_plus(mv_rqst)        
         button = [
-            [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏണ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
+            [InlineKeyboardButton('🔍 ꜱᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
             [                
-                InlineKeyboardButton('📢 Request here 📢', url="https://t.me/Urvashi_Theaters_bot")
+                InlineKeyboardButton('📢 Request here 📢', url="http://t.me/Promoviesearcherbot")
             ]
         ]        
         k = await msg.reply_text(
