@@ -200,25 +200,26 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False):
-    """For given query return (results, next_offset) with Advanced Fault-Tolerant Search"""
+    """For given query return (results, next_offset) with Safe Broad Search & Fuzzy Sorting"""
 
     query = query.strip()
     if not query:
         return [], '', 0
 
-    # --- ഡാറ്റാബേസ് ക്വറി കൂടുതൽ ലളിതമാക്കുന്നു (അക്ഷരത്തെറ്റുകൾ പിടിക്കാൻ) ---
-    # ഓരോ അക്ഷരങ്ങൾക്കും ഇടയിൽ .* ചേർക്കുന്നത് വഴി ചെറിയ അക്ഷരത്തെറ്റുകൾ ഉണ്ടെങ്കിലും ഡാറ്റാബേസ് ഫയലുകൾ തരും
-    # ഉദാഹരണത്തിന് 'kuruti' എന്ന് അടിച്ചാൽ 'k.*u.*r.*u.*t.*i' എന്ന് മാറി ഡാറ്റാബേസിൽ തിരയും
-    clean_query = re.sub(r'[^a-zA-Z0-9]', '', query) # ചിഹ്നങ്ങൾ ഒഴിവാക്കുന്നു
-    if clean_query:
-        raw_pattern = '.*'.join(list(clean_query))
-    else:
-        raw_pattern = query.replace(' ', '.*')
+    # --- സുരക്ഷിതമായ ഡാറ്റാബേസ് പാറ്റേൺ ---
+    # സ്പെയിസ് വെച്ച് വാക്കുകൾ വേർതിരിച്ച് സുരക്ഷിതമായി സെർച്ച് ചെയ്യുന്നു
+    query_parts = query.split()
+    raw_pattern = '.*'.join(re.escape(p) for p in query_parts)
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        return [], '', 0
+        # ചെറിയ അക്ഷരത്തെറ്റുകൾ ആണെങ്കിൽ ആദ്യത്തെ 4 അക്ഷരങ്ങൾ വെച്ച് വീണ്ടും ശ്രമിക്കുന്നു
+        try:
+            raw_pattern = re.escape(query[:4])
+            regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+        except:
+            return [], '', 0
 
     if USE_CAPTION_FILTER:
         filter = {'$or': [{'file_name': regex}, {'caption': regex}]}
@@ -228,17 +229,15 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     if file_type:
         filter['file_type'] = file_type
 
-
-    # Query both collections (കൂടുതൽ ഫയലുകൾ പൈത്തണിലേക്ക് എടുക്കുന്നു - ഫസി മാച്ചിംഗിനായി)
+    # Query both collections (കൂടുതൽ ഫയലുകൾ ഫസി മാച്ചിംഗിനായി എടുക്കുന്നു)
     cursor_media = Media.find(filter).sort('$natural', -1)
     cursor_mediaa = Mediaa.find(filter).sort('$natural', -1)
 
     if offset < 0:
         offset = 0
 
-    # അക്ഷരത്തെറ്റുകൾ ഉള്ളതുകൊണ്ട് ലിസ്റ്റ് ലെങ്ത് 60-ൽ നിന്നും 150 ആക്കി ഉയർത്തുന്നു
-    files_media = await cursor_media.to_list(length=150)
-    files_mediaa = await cursor_mediaa.to_list(length=150)
+    files_media = await cursor_media.to_list(length=100)
+    files_mediaa = await cursor_mediaa.to_list(length=100)
 
     total_results = len(files_media) + len(files_mediaa)
     
@@ -252,7 +251,7 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
 
-    # --- ADVANCED FUZZY SORTING START ---
+    # --- RAPIDFUZZ SORTING START ---
     search_query = query.lower().strip()
 
     def get_file_name(file_obj):
@@ -265,23 +264,18 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
         cleaned_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
         cleaned_name = ' '.join(cleaned_name.split())
         
-        # അക്ഷരത്തെറ്റുകൾ വളരെ കൃത്യമായി കണ്ടുപിടിക്കാൻ fuzz.ratio, token_set_ratio എന്നിവ സഹായിക്കും
-        ratio_score = fuzz.ratio(cleaned_name, search_query)
         token_score = fuzz.token_set_ratio(cleaned_name, search_query)
-        partial_score = fuzz.partial_ratio(cleaned_name, search_query)
+        ratio_score = fuzz.ratio(cleaned_name, search_query)
         
-        # സ്കോർ ട്യൂപ്പിൾ റിട്ടേൺ ചെയ്യുന്നു
         return (
-            -token_score,       # 1st: അക്ഷരത്തെറ്റുകൾ ഉണ്ടെങ്കിലും വാക്കുകൾ മാച്ച് ആകുന്നവ
-            -ratio_score,       # 2nd: പേര് പരമാവധി ഒത്തുപോകുന്നവ
-            -partial_score,     # 3rd: ഭാഗികമായി ഒത്തുപോകുന്നവ
-            len(name),          # 4th: ചെറിയ പേരുകൾ
+            -token_score,
+            -ratio_score,
+            len(name),
             name
         )
 
-    # അക്യുറസി സ്കോർ അനുസരിച്ച് ഫയലുകൾ അടുക്കുന്നു
     interleaved_files = sorted(interleaved_files, key=sorting_score)
-    # --- ADVANCED FUZZY SORTING END ---
+    # --- RAPIDFUZZ SORTING END ---
 
     files = interleaved_files[offset:offset + max_results]
     next_offset = offset + len(files)
