@@ -199,19 +199,21 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 
-
-
 async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False):
-    """For given query return (results, next_offset) with Maximum Fuzzy Accuracy"""
+    """For given query return (results, next_offset) with Advanced Fault-Tolerant Search"""
 
     query = query.strip()
-
     if not query:
-        raw_pattern = '.'
-    elif ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
+        return [], '', 0
+
+    # --- ഡാറ്റാബേസ് ക്വറി കൂടുതൽ ലളിതമാക്കുന്നു (അക്ഷരത്തെറ്റുകൾ പിടിക്കാൻ) ---
+    # ഓരോ അക്ഷരങ്ങൾക്കും ഇടയിൽ .* ചേർക്കുന്നത് വഴി ചെറിയ അക്ഷരത്തെറ്റുകൾ ഉണ്ടെങ്കിലും ഡാറ്റാബേസ് ഫയലുകൾ തരും
+    # ഉദാഹരണത്തിന് 'kuruti' എന്ന് അടിച്ചാൽ 'k.*u.*r.*u.*t.*i' എന്ന് മാറി ഡാറ്റാബേസിൽ തിരയും
+    clean_query = re.sub(r'[^a-zA-Z0-9]', '', query) # ചിഹ്നങ്ങൾ ഒഴിവാക്കുന്നു
+    if clean_query:
+        raw_pattern = '.*'.join(list(clean_query))
     else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
+        raw_pattern = query.replace(' ', '.*')
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
@@ -227,20 +229,19 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
         filter['file_type'] = file_type
 
 
-    # Query both collections
+    # Query both collections (കൂടുതൽ ഫയലുകൾ പൈത്തണിലേക്ക് എടുക്കുന്നു - ഫസി മാച്ചിംഗിനായി)
     cursor_media = Media.find(filter).sort('$natural', -1)
     cursor_mediaa = Mediaa.find(filter).sort('$natural', -1)
 
-    # Ensure offset is non-negative
     if offset < 0:
         offset = 0
 
-    # Fetch files from both collections
-    files_media = await cursor_media.to_list(length=60)
-    files_mediaa = await cursor_mediaa.to_list(length=60)
+    # അക്ഷരത്തെറ്റുകൾ ഉള്ളതുകൊണ്ട് ലിസ്റ്റ് ലെങ്ത് 60-ൽ നിന്നും 150 ആക്കി ഉയർത്തുന്നു
+    files_media = await cursor_media.to_list(length=150)
+    files_mediaa = await cursor_mediaa.to_list(length=150)
 
     total_results = len(files_media) + len(files_mediaa)
-    # Concatenate files from both collections
+    
     interleaved_files = []
     index_media1 = index_media2 = 0
     while index_media1 < len(files_media) or index_media2 < len(files_mediaa):
@@ -251,7 +252,7 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
 
-    # --- SUPER MAXIMUM ACCURACY (FUZZY MATCHING) START ---
+    # --- ADVANCED FUZZY SORTING START ---
     search_query = query.lower().strip()
 
     def get_file_name(file_obj):
@@ -261,46 +262,34 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
 
     def sorting_score(file_obj):
         name = get_file_name(file_obj).lower().strip()
-        
-        # ഫയൽ നാമങ്ങളിലെ ചിഹ്നങ്ങൾ മാറ്റി ക്ലീൻ ചെയ്യുന്നു
         cleaned_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
         cleaned_name = ' '.join(cleaned_name.split())
         
-        # 1. fuzz.ratio: ഫയൽ നാമവും സെർച്ചും തമ്മിൽ 100% സാമ്യമുണ്ടോ എന്ന് നോക്കുന്നു (0-100 സ്കോർ)
+        # അക്ഷരത്തെറ്റുകൾ വളരെ കൃത്യമായി കണ്ടുപിടിക്കാൻ fuzz.ratio, token_set_ratio എന്നിവ സഹായിക്കും
         ratio_score = fuzz.ratio(cleaned_name, search_query)
-        
-        # 2. fuzz.partial_ratio: വലിയൊരു ഫയൽ പേരിനുള്ളിൽ നമ്മൾ തിരയുന്ന വാക്ക് കൃത്യമായി ഉണ്ടോ എന്ന് നോക്കുന്നു
+        token_score = fuzz.token_set_ratio(cleaned_name, search_query)
         partial_score = fuzz.partial_ratio(cleaned_name, search_query)
         
-        # 3. ടോക്കൺ സോർട്ട് റേഷ്യോ: വാക്കുകൾ അങ്ങോട്ടും ഇങ്ങോട്ടും മാറിയാലും കണ്ടുപിടിക്കും (e.g., 'kuruthi 2021' & '2021 kuruthi')
-        token_score = fuzz.token_sort_ratio(cleaned_name, search_query)
-        
-        # ഉയർന്ന സ്കോർ ഉള്ളവ (High Match) ലിസ്റ്റിൽ ആദ്യം വരാൻ പൈത്തണിൽ മൈനസ് (-) ചിഹ്നം ഉപയോഗിക്കുന്നു
+        # സ്കോർ ട്യൂപ്പിൾ റിട്ടേൺ ചെയ്യുന്നു
         return (
-            -ratio_score,       # 1st Priority: കൃത്യമായ പേര് ഉള്ളവ (ഉദാ: Kuruthi)
-            -token_score,       # 2nd Priority: വാക്കുകൾ മാറിയാലും മാച്ച് ആകുന്നവ
-            -partial_score,     # 3rd Priority: പേരിന്റെ ഭാഗമായി വരുന്നവ (ഉദാ: Kuruthi 2021)
-            len(name),          # 4th Priority: ചെറിയ ഫയൽ നാമങ്ങൾക്ക് മുൻഗണന
+            -token_score,       # 1st: അക്ഷരത്തെറ്റുകൾ ഉണ്ടെങ്കിലും വാക്കുകൾ മാച്ച് ആകുന്നവ
+            -ratio_score,       # 2nd: പേര് പരമാവധി ഒത്തുപോകുന്നവ
+            -partial_score,     # 3rd: ഭാഗികമായി ഒത്തുപോകുന്നവ
+            len(name),          # 4th: ചെറിയ പേരുകൾ
             name
         )
 
-    # പുതിയ സ്കോറിംഗ് സിസ്റ്റം ഉപയോഗിച്ച് ഫയലുകൾ കൃത്യതയോടെ സോർട്ട് ചെയ്യുന്നു
+    # അക്യുറസി സ്കോർ അനുസരിച്ച് ഫയലുകൾ അടുക്കുന്നു
     interleaved_files = sorted(interleaved_files, key=sorting_score)
-    # --- SUPER MAXIMUM ACCURACY (FUZZY MATCHING) END ---
+    # --- ADVANCED FUZZY SORTING END ---
 
-    # Manually skip files based on the offset
     files = interleaved_files[offset:offset + max_results]
-
-    # Calculate next offset
     next_offset = offset + len(files)
 
-    # If there are more results, return the next_offset; otherwise, set it to ''
     if next_offset < total_results:
         return files, next_offset, total_results
     else:
         return files, '', total_results
-
-
 
 
 async def get_file_details(query):
