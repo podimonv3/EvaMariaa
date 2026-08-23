@@ -200,26 +200,19 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False):
-    """For given query return (results, next_offset) with Safe Broad Search & Fuzzy Sorting"""
+    """For given query return (results, next_offset) with Clean Search & Sorting"""
 
     query = query.strip()
     if not query:
         return [], '', 0
 
-    # --- സുരക്ഷിതമായ ഡാറ്റാബേസ് പാറ്റേൺ ---
-    # സ്പെയിസ് വെച്ച് വാക്കുകൾ വേർതിരിച്ച് സുരക്ഷിതമായി സെർച്ച് ചെയ്യുന്നു
-    query_parts = query.split()
-    raw_pattern = '.*'.join(re.escape(p) for p in query_parts)
+    # ലളിതമായ ഡാറ്റാബേസ് സെർച്ച് പാറ്റേൺ
+    raw_pattern = query.replace(' ', '.*')
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
     except:
-        # ചെറിയ അക്ഷരത്തെറ്റുകൾ ആണെങ്കിൽ ആദ്യത്തെ 4 അക്ഷരങ്ങൾ വെച്ച് വീണ്ടും ശ്രമിക്കുന്നു
-        try:
-            raw_pattern = re.escape(query[:4])
-            regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-        except:
-            return [], '', 0
+        return [], '', 0
 
     if USE_CAPTION_FILTER:
         filter = {'$or': [{'file_name': regex}, {'caption': regex}]}
@@ -229,15 +222,15 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     if file_type:
         filter['file_type'] = file_type
 
-    # Query both collections (കൂടുതൽ ഫയലുകൾ ഫസി മാച്ചിംഗിനായി എടുക്കുന്നു)
+    # Query both collections
     cursor_media = Media.find(filter).sort('$natural', -1)
     cursor_mediaa = Mediaa.find(filter).sort('$natural', -1)
 
     if offset < 0:
         offset = 0
 
-    files_media = await cursor_media.to_list(length=100)
-    files_mediaa = await cursor_mediaa.to_list(length=100)
+    files_media = await cursor_media.to_list(length=50)
+    files_mediaa = await cursor_mediaa.to_list(length=50)
 
     total_results = len(files_media) + len(files_mediaa)
     
@@ -251,7 +244,7 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
 
-    # --- RAPIDFUZZ SORTING START ---
+    # Exact match ആദ്യം വരാനുള്ള ലളിതമായ സോർട്ടിങ്
     search_query = query.lower().strip()
 
     def get_file_name(file_obj):
@@ -259,23 +252,14 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
             return file_obj.get('file_name', '')
         return getattr(file_obj, 'file_name', '')
 
-    def sorting_score(file_obj):
-        name = get_file_name(file_obj).lower().strip()
-        cleaned_name = name.replace('.', ' ').replace('_', ' ').replace('-', ' ')
-        cleaned_name = ' '.join(cleaned_name.split())
-        
-        token_score = fuzz.token_set_ratio(cleaned_name, search_query)
-        ratio_score = fuzz.ratio(cleaned_name, search_query)
-        
-        return (
-            -token_score,
-            -ratio_score,
-            len(name),
-            name
+    interleaved_files = sorted(
+        interleaved_files,
+        key=lambda x: (
+            get_file_name(x).lower().strip() != search_query,
+            len(get_file_name(x)),
+            get_file_name(x).lower()
         )
-
-    interleaved_files = sorted(interleaved_files, key=sorting_score)
-    # --- RAPIDFUZZ SORTING END ---
+    )
 
     files = interleaved_files[offset:offset + max_results]
     next_offset = offset + len(files)
