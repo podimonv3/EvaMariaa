@@ -200,14 +200,14 @@ async def get_bad_files(query, file_type=None, filter=False):
 
 
 async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False):
-    """For given query return (results, next_offset) with Clean Search & Sorting"""
-
+    """For given query return (results, next_offset)"""
     query = query.strip()
     if not query:
-        return [], '', 0
-
-    # ലളിതമായ ഡാറ്റാബേസ് സെർച്ച് പാറ്റേൺ
-    raw_pattern = query.replace(' ', '.*')
+        raw_pattern = '.'
+    elif ' ' not in query:
+        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
+    else:
+        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
@@ -222,18 +222,16 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     if file_type:
         filter['file_type'] = file_type
 
-    # Query both collections
     cursor_media = Media.find(filter).sort('$natural', -1)
     cursor_mediaa = Mediaa.find(filter).sort('$natural', -1)
 
     if offset < 0:
         offset = 0
 
-    files_media = await cursor_media.to_list(length=50)
-    files_mediaa = await cursor_mediaa.to_list(length=50)
+    files_media = await cursor_media.to_list(length=60)
+    files_mediaa = await cursor_mediaa.to_list(length=60)
 
     total_results = len(files_media) + len(files_mediaa)
-    
     interleaved_files = []
     index_media1 = index_media2 = 0
     while index_media1 < len(files_media) or index_media2 < len(files_mediaa):
@@ -243,23 +241,6 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
         if index_media2 < len(files_mediaa):
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
-
-    # Exact match ആദ്യം വരാനുള്ള ലളിതമായ സോർട്ടിങ്
-    search_query = query.lower().strip()
-
-    def get_file_name(file_obj):
-        if isinstance(file_obj, dict):
-            return file_obj.get('file_name', '')
-        return getattr(file_obj, 'file_name', '')
-
-    interleaved_files = sorted(
-        interleaved_files,
-        key=lambda x: (
-            get_file_name(x).lower().strip() != search_query,
-            len(get_file_name(x)),
-            get_file_name(x).lower()
-        )
-    )
 
     files = interleaved_files[offset:offset + max_results]
     next_offset = offset + len(files)
