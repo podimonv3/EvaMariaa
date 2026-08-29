@@ -52,40 +52,45 @@ async def pm_text(bot: Client, message):
     if user_id in ADMINS: return 
 
     # =================================================================
-    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (GLOBAL FILTER CHECK)
+    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (EVAMARIA DB STRUCTURE FIXED)
     # =================================================================
-    # യൂസർ അയച്ചത് വെറും ടെക്സ്റ്റ് മെസ്സേജ് ആണെങ്കിൽ മാത്രം ഫിൽറ്റർ തിരയുന്നു
     if message.text:
-        # നിങ്ങളുടെ ഡാറ്റാബേസിൽ ഈ മെസ്സേജിന് മാച്ച് ആകുന്ന ഗ്ലോബൽ ഫിൽറ്റർ ഉണ്ടോ എന്ന് നോക്കുന്നു
-        reply_text, btn, alert, file_id = await find_gfilter(message.chat.id, message.text.lower())
+        # Evamaria-യുടെ യഥാർത്ഥ ലോജിക് അനുസരിച്ച് ഡാറ്റാബേസ് തിരയുന്നു
+        g_filter = await find_gfilter(message.chat.id, message.text.lower())
         
-        # ഫിൽറ്റർ കണ്ടെത്തുകയാണെങ്കിൽ:
-        if reply_text:
+        # ഫിൽറ്റർ ഡാറ്റാബേസിൽ കണ്ടെത്തുകയാണെങ്കിൽ:
+        if g_filter:
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
             
-            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു
+            # ഡാറ്റാബേസിൽ നിന്നുള്ള വിവരങ്ങൾ കൃത്യമായി വേർതിരിച്ചെടുക്കുന്നു
+            reply_text = g_filter.get('reply') or g_filter.get('text')
+            file_id = g_filter.get('file_id')
+            
+            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു (Evamaria ബട്ടൺ പാഴ്സിങ് ലോജിക്)
+            btn = g_filter.get('buttons', [])
             IMDB_BUTTONS = InlineKeyboardMarkup(btn) if btn else None
             
-            # ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ ഉണ്ടെങ്കിൽ അത് യൂസർക്ക് നേരിട്ട് അയക്കുന്നു
+            # 1. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ അത് അയക്കുന്നു
             if file_id:
                 await bot.send_cached_media(
                     chat_id=message.chat.id,
                     media_file_id=file_id,
-                    caption=reply_text,
+                    caption=reply_text or "",
                     reply_markup=IMDB_BUTTONS
                 )
-            # വെറും ടെക്സ്റ്റ് മറുപടി ആണെങ്കിൽ അത് അയക്കുന്നു
-            else:
+            # 2. വെറും ടെക്സ്റ്റ് മറുപടി മാത്രമാണെങ്കിൽ അത് അയക്കുന്നു
+            elif reply_text:
                 await bot.send_message(
                     chat_id=message.chat.id,
                     text=reply_text,
                     reply_markup=IMDB_BUTTONS,
                     disable_web_page_preview=True
                 )
-            return # 🛑 ഫിൽറ്റർ കിട്ടിയതുകൊണ്ട് ഇവിടെ വെച്ച് ഫങ്ഷൻ നിർത്തുന്നു. ലോഗ് ചാനലിലേക്ക് മെസ്സേജ് പോകില്ല!
-            
+                
+            return # 🛑 ഫിൽറ്റർ കിട്ടിയതുകൊണ്ട് ഇവിടെ വെച്ച് നിർത്തുന്നു. ലോഗ് ചാനലിലേക്ക് മെസ്സേജ് പോകില്ല!
+
     # =================================================================
-    # പഴയ ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
+    # ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
     # =================================================================
     await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
     await asyncio.sleep(0.5)
@@ -102,7 +107,7 @@ async def pm_text(bot: Client, message):
         [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
     ])
     
-    log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
+    log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢേ :</b> <code>{content}</code>\n\n#id{user_id}"
     
     if message.photo:
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
@@ -122,7 +127,6 @@ async def pm_text(bot: Client, message):
         await bot.delete_messages(chat_id=message.chat.id, message_ids=[reply_msg.id])    
     except Exception as e:
         print(f"Error deleting messages: {e}")
-
 
 
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
