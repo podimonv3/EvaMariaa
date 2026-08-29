@@ -728,12 +728,12 @@ async def auto_filter(client, msg, spoll=False):
             search = re.sub(r"([a-zA-Z]+)([0-9]+)", r"\1 \2", search)
             search = re.sub(r"([0-9]+)([a-zA-Z]+)", r"\1 \2", search)                                    
             
-            # 2. ചിഹ്നങ്ങൾ മാറ്റുന്നു
-            search = re.sub(r"[-_,#&?/]", " ", search).replace(":", "").replace(".", "").replace("¡", "").replace("%", "").replace("?", "")                         
+            # 2. ചിഹ്നങ്ങളും ബ്രാക്കറ്റുകളും മാറ്റുന്നു ( ) [ ] എന്നിവ കൂടി ഉൾപ്പെടുത്തി
+            search = re.sub(r"[-_,#&?/( )\[\]\\]", " ", search).replace(":", "").replace(".", "").replace("¡", "").replace("%", "").replace("?", "")                         
             
-            # 3. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു
+            # 3. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു (\b ചേർത്തതു കൊണ്ട് വാക്ക് പൂർണ്ണമാണെങ്കിൽ മാത്രമേ മാറൂ)
             search = re.sub(r"\b(movie(s)?|hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
-            
+                                   
             # 4 & 5. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ഫിൽട്ടർ ചെയ്യുന്നു
             find = search.split(" ")
             removes = {
