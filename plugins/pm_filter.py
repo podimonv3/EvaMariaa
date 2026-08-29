@@ -52,34 +52,34 @@ async def pm_text(bot: Client, message):
     if user_id in ADMINS: return 
 
     # =================================================================
-    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (EVAMARIA DB STRUCTURE FIXED)
+    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (TUPLE FORMAT FIXED)
     # =================================================================
     if message.text:
-        # Evamaria-യുടെ യഥാർത്ഥ ലോജിക് അനുസരിച്ച് ഡാറ്റാബേസ് തിരയുന്നു
+        # ഡാറ്റാബേസിൽ നിന്നും ട്യൂപ്പിൾ ഒബ്ജക്റ്റ് റീഡ് ചെയ്യുന്നു
         g_filter = await find_gfilter(message.chat.id, message.text.lower())
         
-        # ഫിൽറ്റർ ഡാറ്റാബേസിൽ കണ്ടെത്തുകയാണെങ്കിൽ:
-        if g_filter:
+        # ഗ്ലോബൽ ഫിൽറ്റർ കണ്ടെത്തുകയും അതിൽ മറുപടി (reply_text) ഉണ്ടാവുകയും ചെയ്താൽ:
+        if g_filter and g_filter[0]:
             await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
             
-            # ഡാറ്റാബേസിൽ നിന്നുള്ള വിവരങ്ങൾ കൃത്യമായി വേർതിരിച്ചെടുക്കുന്നു
-            reply_text = g_filter.get('reply') or g_filter.get('text')
-            file_id = g_filter.get('file_id')
+            # ട്യൂപ്പിളിൽ നിന്നും വിവരങ്ങൾ ഇൻഡെക്സ് വെച്ച് വേർതിരിക്കുന്നു
+            reply_text = g_filter[0]
+            btn = g_filter[1]
+            file_id = g_filter[3] if len(g_filter) > 3 else None  # ഫയൽ ഐഡി ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു
             
-            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു (Evamaria ബട്ടൺ പാഴ്സിങ് ലോജിക്)
-            btn = g_filter.get('buttons', [])
+            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു
             IMDB_BUTTONS = InlineKeyboardMarkup(btn) if btn else None
             
-            # 1. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ അത് അയക്കുന്നു
+            # 1. ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ അത് അയക്കുന്നു
             if file_id:
                 await bot.send_cached_media(
                     chat_id=message.chat.id,
                     media_file_id=file_id,
-                    caption=reply_text or "",
+                    caption=reply_text,
                     reply_markup=IMDB_BUTTONS
                 )
             # 2. വെറും ടെക്സ്റ്റ് മറുപടി മാത്രമാണെങ്കിൽ അത് അയക്കുന്നു
-            elif reply_text:
+            else:
                 await bot.send_message(
                     chat_id=message.chat.id,
                     text=reply_text,
@@ -87,7 +87,7 @@ async def pm_text(bot: Client, message):
                     disable_web_page_preview=True
                 )
                 
-            return # 🛑 ഫിൽറ്റർ കിട്ടിയതുകൊണ്ട് ഇവിടെ വെച്ച് നിർത്തുന്നു. ലോഗ് ചാനലിലേക്ക് മെസ്സേജ് പോകില്ല!
+            return # 🛑 ഫിൽറ്റർ അയച്ചതുകൊണ്ട് ലോഗ് ചാനൽ സെക്ഷനിലേക്ക് പോകാതെ ഇവിടെ വെച്ച് അവസാനിപ്പിക്കുന്നു.
 
     # =================================================================
     # ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
@@ -107,7 +107,7 @@ async def pm_text(bot: Client, message):
         [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
     ])
     
-    log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢേ :</b> <code>{content}</code>\n\n#id{user_id}"
+    log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
     
     if message.photo:
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
@@ -124,7 +124,10 @@ async def pm_text(bot: Client, message):
     
     await asyncio.sleep(30)    
     try:
-        await bot.delete_messages(chat_id=message.chat.id, message_ids=[reply_msg.id])    
+        await bot.delete_messages(
+            chat_id=message.chat.id, 
+            message_ids=[reply_msg.id]
+        )    
     except Exception as e:
         print(f"Error deleting messages: {e}")
 
