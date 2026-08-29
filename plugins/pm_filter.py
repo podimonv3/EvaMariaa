@@ -713,41 +713,46 @@ async def auto_filter(client, msg, spoll=False):
     if not spoll:
         message = msg
         settings = await get_settings(message.chat.id)
-        if message.text.startswith("/"): 
+        
+        # 0. ടെക്സ്റ്റ് മെസ്സേജ് ആണെന്ന് ഉറപ്പാക്കുന്നു (മീഡിയ ഫയലുകൾ വന്നാൽ ക്രാഷ് ആകില്ല)
+        if not message.text or message.text.startswith("/"): 
             return  # ignore commands
             
         if re.findall(r"((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text):
             return
             
-        if 1 < len(message.text) < 100:
+        if 0 < len(message.text) < 100:
             search = message.text.lower()                       
             
             # 1. അക്കങ്ങൾ വേർതിരിക്കുന്നു (kgf2 -> kgf 2)
             search = re.sub(r"([a-zA-Z]+)([0-9]+)", r"\1 \2", search)
             search = re.sub(r"([0-9]+)([a-zA-Z]+)", r"\1 \2", search)                                    
             
-            # 2. ചിഹ്നങ്ങൾ മാറ്റുന്നു (ഡബിൾ റീപ്ലേസ്മെന്റ് ഒഴിവാക്കി ക്ലീൻ ആക്കിയത്)
+            # 2. ചിഹ്നങ്ങൾ മാറ്റുന്നു
             search = re.sub(r"[-_,#&?/]", " ", search).replace(":", "").replace(".", "").replace("¡", "").replace("%", "").replace("?", "")                         
             
             # 3. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു
-            search = re.sub(r"movie(s)?|hd|full|print|file", "", search, flags=re.IGNORECASE)                       
+            search = re.sub(r"\b(movie(s)?|hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
             
-            # 4. ലൂപ്പ് വഴി അനാവശ്യ വാക്കുകൾ ഒഴിവാക്കുന്നു
+            # 4 & 5. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ഫിൽട്ടർ ചെയ്യുന്നു
             find = search.split(" ")
-            search = ""
-            removes = ["in", "upload", "horror", "thriller", "mystery"]
-            for x in find:
-                if x in removes:
-                    continue
-                else:
-                    search = search + x + " "                       
-            
-            # 5. മറ്റ് ലിസ്റ്റിലുള്ള വാക്കുകൾ നീക്കം ചെയ്യുന്നു
-            search = re.sub(r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|new|latest|Veno|Malayalam|Tamil|Telugu|Hindi|Kannada|Marathi|Malayalm|Undo|ayakkumo|ayakkamo|Hai|Veno|und|new movie|move|multi|dubb|dub|bro|bruh|broh|helo|that|find|dubbed|link|venum|iruka|pannunga|pannungga|anuppunga|anupunga|anuppungga|anupungga|film|subtile|undo|kitti|kitty|tharu|kittumo|kittum|any(one)|with\ssubtitle(s)?)", "", search, flags=re.IGNORECASE)                         
+            removes = {
+                "pls", "plz", "please", "send", "snd", 
+                "gib", "veno", 
+                "undo", "ayakkumo", "ayakkamo", "und", "move", 
+                "multi", "dubb", "dub", "bro", "bruh", "broh", "dubbed", "link", 
+                "venum", "iruka", "pannunga", "pannungga", "anuppunga", "anupunga", "anuppungga", 
+                "anupungga", "subtile", "kitti", "kitty", "tharu", "kittumo", "kittum",                 
+            }
+            search = " ".join([w for w in find if w not in removes])
             
             # 6. അനാവശ്യ സ്പേസുകൾ കളയുന്നു
             search = re.sub(r"\s+", " ", search).strip()                                                
             
+            # ഫിൽട്ടറിംഗിന് ശേഷം വാക്കുകൾ ഒന്നും ബാക്കിയില്ലെങ്കിൽ ഡാറ്റാബേസ് സെർച്ച് ഒഴിവാക്കുന്നു
+            if not search:
+                return
+
             # 7. ഡാറ്റാബേസിൽ തിരയുന്നു
             files, offset, total_results = await get_search_results(search, offset=0, filter=True)
             if not files:
@@ -763,6 +768,7 @@ async def auto_filter(client, msg, spoll=False):
         search, files, offset, total_results = spoll
     pre = 'filep' if settings['file_secure'] else 'file'
     if settings["button"]:
+        # ഇതിന് താഴോട്ട് നിങ്ങളുടെ ഫയലിലുള്ള ബാക്കി കോഡ് (ബട്ടണുകൾ നിർമ്മിക്കുന്ന ഭാഗം) അതുപോലെ തന്നെ വെക്കുക.
         btn = [
             [
                 InlineKeyboardButton(
