@@ -46,17 +46,50 @@ async def pm_text(bot: Client, message):
     user_id = message.from_user.id
     user = message.from_user.first_name or "User"
     
-    # മെസ്സേജിന്റെ ടൈപ്പ് അനുസരിച്ച് ഉള്ളടക്കം വേർതിരിക്കുന്നു
     content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
     
     if message.text and (message.text.startswith("/") or message.text.startswith("#")): return  
     if user_id in ADMINS: return 
-    
-    # യൂസർക്ക് മറുപടി അയക്കുന്നതിന് മുൻപ് 'Typing...' ആനിമേഷൻ കാണിക്കുന്നു (enums.ChatAction ഉപയോഗിച്ചു)
+
+    # =================================================================
+    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (GLOBAL FILTER CHECK)
+    # =================================================================
+    # യൂസർ അയച്ചത് വെറും ടെക്സ്റ്റ് മെസ്സേജ് ആണെങ്കിൽ മാത്രം ഫിൽറ്റർ തിരയുന്നു
+    if message.text:
+        # നിങ്ങളുടെ ഡാറ്റാബേസിൽ ഈ മെസ്സേജിന് മാച്ച് ആകുന്ന ഗ്ലോബൽ ഫിൽറ്റർ ഉണ്ടോ എന്ന് നോക്കുന്നു
+        reply_text, btn, alert, file_id = await find_gfilter(message.chat.id, message.text.lower())
+        
+        # ഫിൽറ്റർ കണ്ടെത്തുകയാണെങ്കിൽ:
+        if reply_text:
+            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+            
+            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു
+            IMDB_BUTTONS = InlineKeyboardMarkup(btn) if btn else None
+            
+            # ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ ഉണ്ടെങ്കിൽ അത് യൂസർക്ക് നേരിട്ട് അയക്കുന്നു
+            if file_id:
+                await bot.send_cached_media(
+                    chat_id=message.chat.id,
+                    media_file_id=file_id,
+                    caption=reply_text,
+                    reply_markup=IMDB_BUTTONS
+                )
+            # വെറും ടെക്സ്റ്റ് മറുപടി ആണെങ്കിൽ അത് അയക്കുന്നു
+            else:
+                await bot.send_message(
+                    chat_id=message.chat.id,
+                    text=reply_text,
+                    reply_markup=IMDB_BUTTONS,
+                    disable_web_page_preview=True
+                )
+            return # 🛑 ഫിൽറ്റർ കിട്ടിയതുകൊണ്ട് ഇവിടെ വെച്ച് ഫങ്ഷൻ നിർത്തുന്നു. ലോഗ് ചാനലിലേക്ക് മെസ്സേജ് പോകില്ല!
+            
+    # =================================================================
+    # പഴയ ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
+    # =================================================================
     await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
     await asyncio.sleep(0.5)
     
-    # യൂസർക്ക് ലഭിക്കുന്ന മറുപടി മെസ്സേജ്
     reply_msg = await message.reply_text(
          text=f"<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",   
          reply_markup=InlineKeyboardMarkup([
@@ -65,14 +98,12 @@ async def pm_text(bot: Client, message):
          ])
     )    
     
-    # അഡ്മിന് ലഭിക്കുന്ന ലോഗ് മെസ്സേജിനുള്ള ബട്ടൺ
     log_reply_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
     ])
     
     log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
     
-    # ഫയലിന്റെ തരം അനുസരിച്ച് ആനിമേഷൻ സ്റ്റാറ്റസ് കാണിച്ചുകൊണ്ട് ലോഗ് ചാനലിലേക്ക് അയക്കുന്നു
     if message.photo:
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
         await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
@@ -86,16 +117,12 @@ async def pm_text(bot: Client, message):
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
         await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)    
     
-    # 30 സെക്കൻഡ് കാത്തുനിൽക്കുന്നു
-    await asyncio.sleep(60)    
+    await asyncio.sleep(30)    
     try:
-        # ബോട്ടിന്റെ മറുപടി മാത്രം ഡിലീറ്റ് ചെയ്യുന്നു (യൂസറുടെ മെസ്സേജ് ഡിലീറ്റ് ആകില്ല)
-        await bot.delete_messages(
-            chat_id=message.chat.id, 
-            message_ids=[reply_msg.id]
-        )    
+        await bot.delete_messages(chat_id=message.chat.id, message_ids=[reply_msg.id])    
     except Exception as e:
         print(f"Error deleting messages: {e}")
+
 
 
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
