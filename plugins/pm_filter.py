@@ -723,6 +723,12 @@ async def auto_filter(client, msg, spoll=False):
             
         if 0 < len(message.text) < 100:
             search = message.text.lower()                       
+
+            # 1. കണ്ണിൽ കാണാത്ത എല്ലാ ഹിഡൻ യുണികോഡ് ക്യാരക്റ്ററുകളും നീക്കം ചെയ്യുന്നു
+            search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
+            
+            # 2. നോൺ-ബ്രേക്കിംഗ് സ്പേസുകൾ ഉൾപ്പെടെയുള്ള എല്ലാ പ്രത്യേക സ്പേസുകളെയും സാധാരണ സ്പേസ് ആക്കുന്നു
+            search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
             
             # 1. അക്കങ്ങൾ വേർതിരിക്കുന്നു (kgf2 -> kgf 2)
             search = re.sub(r"([a-zA-Z]+)([0-9]+)", r"\1 \2", search)
