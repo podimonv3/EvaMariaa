@@ -40,18 +40,21 @@ GENRES = ["fun, fact",
           "Documentary"]
 
 
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import asyncio
-
-@Client.on_message(filters.private & filters.text & filters.incoming)
+# യൂസർമാർ അയക്കുന്ന ടെക്സ്റ്റ്, ഫോട്ടോ, വീഡിയോ, സ്റ്റിക്കർ എന്നിവ സ്വീകരിക്കുന്നു
+@Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
 async def pm_text(bot: Client, message):
-    content = message.text
     user_id = message.from_user.id
     user = message.from_user.first_name or "User"
     
-    if content.startswith("/") or content.startswith("#"): return  
+    # മെസ്സേജിന്റെ ടൈപ്പ് അനുസരിച്ച് ഉള്ളടക്കം വേർതിരിക്കുന്നു
+    content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
+    
+    if message.text and (message.text.startswith("/") or message.text.startswith("#")): return  
     if user_id in ADMINS: return 
+    
+    # യൂസർക്ക് മറുപടി അയക്കുന്നതിന് മുൻപ് 'Typing...' ആനിമേഷൻ കാണിക്കുന്നു (enums.ChatAction ഉപയോഗിച്ചു)
+    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+    await asyncio.sleep(0.5)
     
     # യൂസർക്ക് ലഭിക്കുന്ന മറുപടി മെസ്സേജ്
     reply_msg = await message.reply_text(
@@ -67,16 +70,24 @@ async def pm_text(bot: Client, message):
         [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
     ])
     
-    # ലോഗ് ചാനലിലേക്ക് ബട്ടൺ സഹിതം മെസ്സേജ് അയക്കുന്നു
-    await bot.send_message(
-        chat_id=LOG_CHANNEL,
-        text=f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}",
-        reply_markup=log_reply_markup, # ഇവിടെ ബട്ടൺ ലിങ്ക് ചെയ്തിട്ടുണ്ട്
-        disable_web_page_preview=True
-    )    
+    log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
+    
+    # ഫയലിന്റെ തരം അനുസരിച്ച് ആനിമേഷൻ സ്റ്റാറ്റസ് കാണിച്ചുകൊണ്ട് ലോഗ് ചാനലിലേക്ക് അയക്കുന്നു
+    if message.photo:
+        await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
+        await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
+    elif message.video:
+        await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_VIDEO)
+        await bot.send_video(chat_id=LOG_CHANNEL, video=message.video.file_id, caption=log_text, reply_markup=log_reply_markup)
+    elif message.sticker:
+        await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
+        await bot.send_sticker(chat_id=LOG_CHANNEL, sticker=message.sticker.file_id)
+    else:
+        await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
+        await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)    
     
     # 30 സെക്കൻഡ് കാത്തുനിൽക്കുന്നു
-    await asyncio.sleep(30)    
+    await asyncio.sleep(60)    
     try:
         # ബോട്ടിന്റെ മറുപടി മാത്രം ഡിലീറ്റ് ചെയ്യുന്നു (യൂസറുടെ മെസ്സേജ് ഡിലീറ്റ് ആകില്ല)
         await bot.delete_messages(
@@ -87,33 +98,47 @@ async def pm_text(bot: Client, message):
         print(f"Error deleting messages: {e}")
 
 
-
-
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
 async def admin_reply_to_user(bot: Client, message):
-    # അഡ്മിൻ റിപ്ലേ ചെയ്ത മെസ്സേജിന്റെ ഒറിജിനൽ ടെക്സ്റ്റ് പരിശോധിക്കുന്നു
-    if not message.reply_to_message.text:
+    # അഡ്മിൻ റിപ്ലേ ചെയ്ത മെസ്സേജിന്റെ ഒറിജിനൽ ടെക്സ്റ്റ് അല്ലെങ്കിൽ ക്യാപ്ഷൻ പരിശോധിക്കുന്നു
+    parent_message = message.reply_to_message
+    parent_text = parent_message.text or parent_message.caption
+    
+    if not parent_text:
         return
         
     # അതിൽ നിന്നും യൂസർ ഐഡി (#id12345) കണ്ടുപിടിക്കുന്നു
     pattern = r"#id(\d+)"
-    match = re.search(pattern, message.reply_to_message.text)
+    match = re.search(pattern, parent_text)
     
     if match:
         user_id = int(match.group(1))
-        reply_text = message.text
+        reply_caption = f"<b>💬 Message From Admin:\n\n{message.caption}</b>" if message.caption else "<b>💬 Message From Admin</b>"
         
         try:
-            # അഡ്മിൻ നൽകിയ മറുപടി ബോട്ട് വഴി യൂസർക്ക് അയക്കുന്നു
-            await bot.send_message(
-                chat_id=user_id,
-                text=f"<b>💬 Message From Admin:\n\n{reply_text}</b>"
-            )
-            # അഡ്മിന് കൺഫർമേഷൻ നൽകുന്നു
+            # അഡ്മിൻ അയക്കുന്ന മീഡിയ അനുസരിച്ച് ആനിമേഷൻ കാണിച്ച് യൂസർക്ക് അയക്കുന്നു
+            if message.photo:
+                await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.UPLOAD_PHOTO)
+                await bot.send_photo(chat_id=user_id, photo=message.photo.file_id, caption=reply_caption)
+            elif message.video:
+                await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.UPLOAD_VIDEO)
+                await bot.send_video(chat_id=user_id, video=message.video.file_id, caption=reply_caption)
+            elif message.sticker:
+                await bot.send_sticker(chat_id=user_id, sticker=message.sticker.file_id)
+            elif message.text:
+                await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.TYPING)
+                # അഡ്മിൻ നൽകിയ മറുപടി ബോട്ട് വഴി യൂസർക്ക് അയക്കുന്നു
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"<b>💬 Message From Admin:\n\n{message.text}</b>"
+                )
+            else:
+                return
+                
+            # അഡ്മിന് കൺഫർമেশন നൽകുന്നു
             await message.reply_text("<b>✅ മറുപടി യൂസർക്ക് വിജയകരമായി അയച്ചു!</b>")
         except Exception as e:
             await message.reply_text(f"<b>❌ മെസ്സേജ് അയക്കാൻ കഴിഞ്ഞില്ല!\nError: {e}</b>")
-
 
 
 
@@ -129,8 +154,6 @@ async def give_filters(client, message):
     except Exception:
         # ഏതെങ്കിലും ഒന്നിൽ എറർ വന്നാൽ ബോട്ട് ക്രാഷ് ആകാതിരിക്കാൻ അവഗണിക്കുന്നു
         pass
-
-
 
 
 @Client.on_callback_query(filters.regex(r"^next"))
