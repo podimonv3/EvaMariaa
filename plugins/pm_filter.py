@@ -742,7 +742,7 @@ async def auto_filter(client, msg, spoll=False):
                 "undo", "ayakkumo", "ayakkamo", "und", "move", 
                 "multi", "dubb", "dub", "bro", "bruh", "broh", "dubbed", "link", 
                 "venum", "iruka", "pannunga", "pannungga", "anuppunga", "anupunga", "anuppungga", 
-                "anupungga", "subtile", "kitti", "kitty", "tharu", "kittumo", "kittum",                 
+                "anupungga", "subtile", "kitti", "kitty", "tharu", "kittumo", "kittum"              
             }
             search = " ".join([w for w in find if w not in removes])
             
