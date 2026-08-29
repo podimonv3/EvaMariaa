@@ -52,42 +52,58 @@ async def pm_text(bot: Client, message):
     if user_id in ADMINS: return 
 
     # =================================================================
-    # 🆕 ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (TUPLE FORMAT FIXED)
+    # 🆕 യഥാർത്ഥ ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (EVAMARIA ORIGINAL LOGIC FIXED)
     # =================================================================
     if message.text:
-        # ഡാറ്റാബേസിൽ നിന്നും ട്യൂപ്പിൾ ഒബ്ജക്റ്റ് റീഡ് ചെയ്യുന്നു
-        g_filter = await find_gfilter(message.chat.id, message.text.lower())
-        
-        # ഗ്ലോബൽ ഫിൽറ്റർ കണ്ടെത്തുകയും അതിൽ മറുപടി (reply_text) ഉണ്ടാവുകയും ചെയ്താൽ:
-        if g_filter and g_filter[0]:
-            await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+        try:
+            name = message.text
+            # ഡാറ്റാബേസിൽ രജിസ്റ്റർ ചെയ്തിട്ടുള്ള എല്ലാ ഗ്ലോബൽ ഫിൽറ്റർ കീവേഡുകളും എടുക്കുന്നു
+            keywords = await get_gfilters('gfilters')
             
-            # ട്യൂപ്പിളിൽ നിന്നും വിവരങ്ങൾ ഇൻഡെക്സ് വെച്ച് വേർതിരിക്കുന്നു
-            reply_text = g_filter[0]
-            btn = g_filter[1]
-            file_id = g_filter[3] if len(g_filter) > 3 else None  # ഫയൽ ഐഡി ഉണ്ടോ എന്ന് ഉറപ്പുവരുത്തുന്നു
-            
-            # ബട്ടണുകൾ ഉണ്ടെങ്കിൽ അത് ഫോർമാറ്റ് ചെയ്യുന്നു
-            IMDB_BUTTONS = InlineKeyboardMarkup(btn) if btn else None
-            
-            # 1. ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ അത് അയക്കുന്നു
-            if file_id:
-                await bot.send_cached_media(
-                    chat_id=message.chat.id,
-                    media_file_id=file_id,
-                    caption=reply_text,
-                    reply_markup=IMDB_BUTTONS
-                )
-            # 2. വെറും ടെക്സ്റ്റ് മറുപടി മാത്രമാണെങ്കിൽ അത് അയക്കുന്നു
-            else:
-                await bot.send_message(
-                    chat_id=message.chat.id,
-                    text=reply_text,
-                    reply_markup=IMDB_BUTTONS,
-                    disable_web_page_preview=True
-                )
+            # വലിയ വാക്കുകളിൽ നിന്നും ചെറിയ വാക്കുകളിലേക്ക് സോർട്ട് ചെയ്ത് പരിശോധിക്കുന്നു
+            for keyword in reversed(sorted(keywords, key=len)):
+                pattern = r"( |^|[^\w])" + re.escape(keyword) + r"( |$|[^\w])"
                 
-            return # 🛑 ഫിൽറ്റർ അയച്ചതുകൊണ്ട് ലോഗ് ചാനൽ സെക്ഷനിലേക്ക് പോകാതെ ഇവിടെ വെച്ച് അവസാനിപ്പിക്കുന്നു.
+                # യൂസർ അയച്ച പേരുമായി കീവേഡ് മാച്ച് ആവുകയാണെങ്കിൽ:
+                if re.search(pattern, name, flags=re.IGNORECASE):
+                    reply_text, btn, alert, fileid = await find_gfilter('gfilters', keyword)
+
+                    if reply_text:
+                        reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
+                        if reply_text == "No reply":
+                            reply_text = ""
+
+                    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
+                    
+                    # ബട്ടൺ ലോജിക് പാഴ്സിംഗ്
+                    button_markup = None
+                    if btn and btn != "[]" and btn != "None":
+                        try:
+                            button_markup = InlineKeyboardMarkup(eval(btn))
+                        except Exception as btn_err:
+                            print(f"Error parsing filter buttons: {btn_err}")
+
+                    # 1. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഇല്ലെങ്കിൽ:
+                    if fileid == "None" or not fileid:
+                        await bot.send_message(
+                            chat_id=message.chat.id,
+                            text=reply_text,
+                            disable_web_page_preview=True,
+                            reply_markup=button_markup
+                        )
+                    # 2. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ:
+                    else:
+                        await bot.send_cached_media(
+                            chat_id=message.chat.id,
+                            media_file_id=fileid,
+                            caption=reply_text or "",
+                            reply_markup=button_markup
+                        )
+                        
+                    return # 🛑 ഫിൽറ്റർ കണ്ടെത്തി യൂസർക്ക് അയച്ചതുകൊണ്ട് ലോഗ് ചാനൽ റിക്വസ്റ്റിലേക്ക് പോകാതെ ഇവിടെ അവസാനിപ്പിക്കുന്നു.
+                    
+        except Exception as filter_error:
+            print(f"Error executing global filter logic in PM: {filter_error}")
 
     # =================================================================
     # ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
