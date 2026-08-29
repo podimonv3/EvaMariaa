@@ -754,27 +754,27 @@ async def auto_filter(client, msg, spoll=False):
         if 0 < len(message.text) < 100:
             search = message.text.lower()                       
 
-            # 1. കണ്ണിൽ കാണാത്ത എല്ലാ ഹിഡൻ യുണികോഡ് ക്യാരക്റ്ററുകളും നീക്കം ചെയ്യുന്നു
+            # 1. കണ്ണിൽ കാണാത്ത എല്ലാ  ഹിഡൻ യുണികോഡ് ക്യാരക്റ്ററുകളും നീക്കം ചെയ്യുന്നു
             search = re.sub(r'[\u200b\u200c\u200d\ufeff\u200e\u200f]', '', search)
             
             # 2. നോൺ-ബ്രേക്കിംഗ് സ്പേസുകൾ ഉൾപ്പെടെയുള്ള എല്ലാ പ്രത്യേക സ്പേസുകളെയും സാധാരണ സ്പേസ് ആക്കുന്നു
             search = re.sub(r'[\s\u00a0\u2000-\u200a\u202f\u205f\u3000]+', ' ', search)
             
-            # 1. അക്കങ്ങൾ വേർതിരിക്കുന്നു (kgf2 -> kgf 2)
-            search = re.sub(r"([a-zA-Z]+)([0-9]+)", r"\1 \2", search)
-            search = re.sub(r"([0-9]+)([a-zA-Z]+)", r"\1 \2", search)                                    
-            
-            # 1. അപ്പോസ്ട്രോഫിയും വളഞ്ഞ സിംഗിൾ കോമകളും പൂർണ്ണമായി നീക്കം ചെയ്യുന്നു (Newton's -> Newtons)
+            # 3. അപ്പോസ്ട്രോഫിയും വളഞ്ഞ സിംഗിൾ കോമകളും പൂർണ്ണമായി നീക്കം ചെയ്യുന്നു (Newton's -> Newtons)
             search = re.sub(r"['‘’]", "", search)
-
-            # 2. ബാക്കി ചിഹ്നങ്ങളും ബ്രാക്കറ്റുകളും മാറ്റി സ്പേസ് ആക്കുന്നു
+            
+            # 4. അക്കങ്ങൾ വേർതിരിക്കുന്നു (kgf2 -> kgf 2, പക്ഷെ 3rd, 2nd, 1st എന്നിവ മാറ്റില്ല)
+            if not re.search(r"\b\d+(st|nd|rd|th)\b", search, re.IGNORECASE):
+                search = re.sub(r"([a-zA-Z]+)([0-9]+)", r"\1 \2", search)
+                search = re.sub(r"([0-9]+)([a-zA-Z]+)", r"\1 \2", search)
+                                    
+            # 5. ബാക്കി ചിഹ്നങ്ങളും ബ്രാക്കറ്റുകളും മാറ്റി സ്പേസ് ആക്കുന്നു
             search = re.sub(r"[-_,#&?/( )\[\]\\\":\.¡%“”]", " ", search)
                          
-            
-            # 3. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു (\b ചേർത്തതു കൊണ്ട് വാക്ക് പൂർണ്ണമാണെങ്കിൽ മാത്രമേ മാറൂ)
+            # 6. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു (\b ചേർത്തതു കൊണ്ട് വാക്ക് പൂർണ്ണമാണെങ്കിൽ മാത്രമേ മാറൂ)
             search = re.sub(r"\b(movie(s)?|hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
                                    
-            # 4 & 5. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ഫിൽട്ടർ ചെയ്യുന്നു
+            # 7 & 8. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ഫിൽട്ടർ ചെയ്യുന്നു
             find = search.split(" ")
             removes = {
                 "pls", "plz", "please", "send", "snd", 
@@ -786,14 +786,14 @@ async def auto_filter(client, msg, spoll=False):
             }
             search = " ".join([w for w in find if w not in removes])
             
-            # 6. അനാവശ്യ സ്പേസുകൾ കളയുന്നു
+            # 9. അനാവശ്യ സ്പേസുകൾ കളയുന്നു
             search = re.sub(r"\s+", " ", search).strip()                                                
             
             # ഫിൽട്ടറിംഗിന് ശേഷം വാക്കുകൾ ഒന്നും ബാക്കിയില്ലെങ്കിൽ ഡാറ്റാബേസ് സെർച്ച് ഒഴിവാക്കുന്നു
             if not search:
                 return
 
-            # 7. ഡാറ്റാബേസിൽ തിരയുന്നു
+            # 10. ഡാറ്റാബേസിൽ തിരയുന്നു
             files, offset, total_results = await get_search_results(search, offset=0, filter=True)
             if not files:
                 if settings["spell_check"]:
