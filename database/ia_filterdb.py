@@ -204,10 +204,11 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     query = query.strip()
     if not query:
         raw_pattern = '.'
-    elif ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
     else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_()]')
+        # ഉപയോക്താവ് തിരയുന്ന വാക്കുകളെ വേർതിരിക്കുന്നു
+        keywords = query.split()
+        # 1. അക്ഷരത്തെറ്റുകൾ ഉണ്ടെങ്കിലും കണ്ടുപിടിക്കാൻ എല്ലാ വാക്കുകളും '|' (OR) ഇട്ട് തിരയുന്നു
+        raw_pattern = "|".join(keywords)
 
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
@@ -228,8 +229,9 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
     if offset < 0:
         offset = 0
 
-    files_media = await cursor_media.to_list(length=60)
-    files_mediaa = await cursor_mediaa.to_list(length=60)
+    # കൂടുതൽ റിസൾട്ടുകൾ എടുത്ത് സോർട്ട് ചെയ്യാൻ വേണ്ടി നീക്കിവെക്കുന്നു
+    files_media = await cursor_media.to_list(length=100)
+    files_mediaa = await cursor_mediaa.to_list(length=100)
 
     total_results = len(files_media) + len(files_mediaa)
     interleaved_files = []
@@ -242,6 +244,30 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
             interleaved_files.append(files_mediaa[index_media2])
             index_media2 += 1
 
+    # --- മുൻഗണന നിശ്ചയിക്കുന്ന ഭാഗം (Priority Sorting) ---
+    def get_priority(file):
+        name = file.get('file_name', '').lower()
+        caption = file.get('caption', '').lower() if USE_CAPTION_FILTER else ''
+        searchable_text = f"{name} {caption}"
+        
+        keywords_lower = [kw.lower() for kw in keywords]
+        
+        # എക്സാക്റ്റ് വാക്ക് (ഉദാ: super subbu) അതേപടി ഉണ്ടെങ്കിൽ ഒന്നാം സ്ഥാനം
+        if query.lower() in searchable_text:
+            return 0
+            
+        # എല്ലാ വാക്കുകളും ഏതെങ്കിലും ക്രമത്തിൽ ഉണ്ടെങ്കിൽ രണ്ടാം സ്ഥാനം
+        if all(kw in searchable_text for kw in keywords_lower):
+            return 1
+            
+        # കൂടുതൽ വാക്കുകൾ മാച്ച് ആകുന്നത് അനുസരിച്ച് മുൻഗണന നൽകുന്നു
+        matches = sum(1 for kw in keywords_lower if kw in searchable_text)
+        return 2 - (matches / len(keywords_lower))
+
+    # എല്ലാ ഫയലുകളെയും മുൻഗണനാ ക്രമത്തിൽ അടുക്കുന്നു
+    interleaved_files.sort(key=get_priority)
+
+    # ഉപയോക്താവ് ആവശ്യപ്പെട്ട ലിമിറ്റ് അനുസരിച്ച് ഫയലുകൾ മുറിച്ചെടുക്കുന്നു
     files = interleaved_files[offset:offset + max_results]
     next_offset = offset + len(files)
 
@@ -249,6 +275,7 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
         return files, next_offset, total_results
     else:
         return files, '', total_results
+
 
 
 async def get_file_details(query):
