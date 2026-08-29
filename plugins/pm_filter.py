@@ -39,78 +39,26 @@ GENRES = ["fun, fact",
           "Film Noir",
           "Documentary"]
 
-
-# യൂസർമാർ അയക്കുന്ന ടെക്സ്റ്റ്, ഫോട്ടോ, വീഡിയോ, സ്റ്റിക്കർ എന്നിവ സ്വീകരിക്കുന്നു
+# =====================================================================
+# 1. USER SIDE: HANDLES INCOMING PM MESSAGES (TEXT, PHOTO, VIDEO, STICKER)
+# =====================================================================
 @Client.on_message(filters.private & (filters.text | filters.photo | filters.video | filters.sticker) & filters.incoming)
 async def pm_text(bot: Client, message):
     user_id = message.from_user.id
     user = message.from_user.first_name or "User"
     
+    # മെസ്സേജിന്റെ ടൈപ്പ് അനുസരിച്ച് ഉള്ളടക്കം വേർതിരിക്കുന്നു (Text/Caption/Sticker)
     content = message.text or message.caption or (f"Sent a Sticker [{message.sticker.emoji}]" if message.sticker else "Media File")
     
+    # കമാൻഡുകളും അഡ്മിൻ മെസ്സേജുകളും ഇഗ്നോർ ചെയ്യുന്നു
     if message.text and (message.text.startswith("/") or message.text.startswith("#")): return  
     if user_id in ADMINS: return 
-
-    # =================================================================
-    # 🆕 യഥാർത്ഥ ഗ്ലോബൽ ഫിൽറ്റർ ചെക്കിംഗ് (EVAMARIA ORIGINAL LOGIC FIXED)
-    # =================================================================
-    if message.text:
-        try:
-            name = message.text
-            # ഡാറ്റാബേസിൽ രജിസ്റ്റർ ചെയ്തിട്ടുള്ള എല്ലാ ഗ്ലോബൽ ഫിൽറ്റർ കീവേഡുകളും എടുക്കുന്നു
-            keywords = await get_gfilters('gfilters')
-            
-            # വലിയ വാക്കുകളിൽ നിന്നും ചെറിയ വാക്കുകളിലേക്ക് സോർട്ട് ചെയ്ത് പരിശോധിക്കുന്നു
-            for keyword in reversed(sorted(keywords, key=len)):
-                pattern = r"( |^|[^\w])" + re.escape(keyword) + r"( |$|[^\w])"
-                
-                # യൂസർ അയച്ച പേരുമായി കീവേഡ് മാച്ച് ആവുകയാണെങ്കിൽ:
-                if re.search(pattern, name, flags=re.IGNORECASE):
-                    reply_text, btn, alert, fileid = await find_gfilter('gfilters', keyword)
-
-                    if reply_text:
-                        reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
-                        if reply_text == "No reply":
-                            reply_text = ""
-
-                    await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
-                    
-                    # ബട്ടൺ ലോജിക് പാഴ്സിംഗ്
-                    button_markup = None
-                    if btn and btn != "[]" and btn != "None":
-                        try:
-                            button_markup = InlineKeyboardMarkup(eval(btn))
-                        except Exception as btn_err:
-                            print(f"Error parsing filter buttons: {btn_err}")
-
-                    # 1. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഇല്ലെങ്കിൽ:
-                    if fileid == "None" or not fileid:
-                        await bot.send_message(
-                            chat_id=message.chat.id,
-                            text=reply_text,
-                            disable_web_page_preview=True,
-                            reply_markup=button_markup
-                        )
-                    # 2. ഗ്ലോബൽ ഫിൽറ്ററിൽ ഫയൽ (Media/File) ഉണ്ടെങ്കിൽ:
-                    else:
-                        await bot.send_cached_media(
-                            chat_id=message.chat.id,
-                            media_file_id=fileid,
-                            caption=reply_text or "",
-                            reply_markup=button_markup
-                        )
-                        
-                    return # 🛑 ഫിൽറ്റർ കണ്ടെത്തി യൂസർക്ക് അയച്ചതുകൊണ്ട് ലോഗ് ചാനൽ റിക്വസ്റ്റിലേക്ക് പോകാതെ ഇവിടെ അവസാനിപ്പിക്കുന്നു.
-                    
-        except Exception as filter_error:
-            print(f"Error executing global filter logic in PM: {filter_error}")
-
-    # =================================================================
-    # ലോഗ് ചാനൽ റിക്വസ്റ്റ് ലോജിക് (ഫിൽറ്റർ ഇല്ലെങ്കിൽ മാത്രം ഇത് പ്രവർത്തിക്കും)
-    # =================================================================
+    
+    # യൂസർക്ക് മറുപടി അയക്കുന്നതിന് മുൻപ് 'Typing...' ആനിമേഷൻ കാണിക്കുന്നു (enums.ChatAction ഉപയോഗിച്ചു)
     await bot.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.TYPING)
     await asyncio.sleep(0.5)
     
+    # യൂസർക്ക് ലഭിക്കുന്ന ഇൻസ്റ്റന്റ് റിപ്ലൈ മെസ്സേജ്
     reply_msg = await message.reply_text(
          text=f"<b>Your Request Has Been Submitted✅\n\nOTT Available Add Files With In 24Hrs.. Please Wait\n\nനിങ്ങളുടെ request അഡ്മിൻ അയച്ചിട്ടുണ്ട് ഫയൽസ് ഉണ്ടെങ്കിൽ 24മണിക്കൂറിനുള്ളിൽ ആഡ് ചെയ്യുന്നതാണ്</b>",   
          reply_markup=InlineKeyboardMarkup([
@@ -119,12 +67,14 @@ async def pm_text(bot: Client, message):
          ])
     )    
     
+    # അഡ്മിന് ലഭിക്കുന്ന ലോഗ് മെസ്സേജിനുള്ള ഡയറക്റ്റ് ബട്ടൺ
     log_reply_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("💬 MESSAGE USER (DIRECT)", url=f"tg://user?id={user_id}")]
     ])
     
     log_text = f"<b># can_PM_MSG\n\nNᴀᴍᴇ : <a href='tg://user?id={user_id}'>{user}</a>\n\nID : <code>{user_id}</code>\n\nMᴇssᴀɢᴇ :</b> <code>{content}</code>\n\n#id{user_id}"
     
+    # ഫയലിന്റെ തരം അനുസരിച്ച് അനിമേഷൻ സ്റ്റാറ്റസ് കാണിച്ചുകൊണ്ട് ലോഗ് ചാനലിലേക്ക് ഫോർവേഡ് ചെയ്യുന്നു
     if message.photo:
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_PHOTO)
         await bot.send_photo(chat_id=LOG_CHANNEL, photo=message.photo.file_id, caption=log_text, reply_markup=log_reply_markup)
@@ -132,14 +82,17 @@ async def pm_text(bot: Client, message):
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.UPLOAD_VIDEO)
         await bot.send_video(chat_id=LOG_CHANNEL, video=message.video.file_id, caption=log_text, reply_markup=log_reply_markup)
     elif message.sticker:
+        # സ്റ്റിക്കർ ആണെങ്കിൽ ചാനലിൽ ഡീറ്റെയിൽസ് അയച്ച ശേഷം തൊട്ടുതാഴെ സ്റ്റിക്കർ അയക്കും
         await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)
         await bot.send_sticker(chat_id=LOG_CHANNEL, sticker=message.sticker.file_id)
     else:
         await bot.send_chat_action(chat_id=LOG_CHANNEL, action=enums.ChatAction.TYPING)
         await bot.send_message(chat_id=LOG_CHANNEL, text=log_text, reply_markup=log_reply_markup, disable_web_page_preview=True)    
     
+    # 30 സെക്കൻഡ് കാത്തുനിൽക്കുന്നു
     await asyncio.sleep(30)    
     try:
+        # ബോട്ടിന്റെ താത്കാലിക കൺഫർമേഷൻ മറുപടി മാത്രം ഡിലീറ്റ് ചെയ്യുന്നു
         await bot.delete_messages(
             chat_id=message.chat.id, 
             message_ids=[reply_msg.id]
@@ -148,25 +101,30 @@ async def pm_text(bot: Client, message):
         print(f"Error deleting messages: {e}")
 
 
+# =====================================================================
+# 2. ADMIN SIDE: HANDLES REPLIES FROM LOG CHANNEL (TEXT, PHOTO, VIDEO, STICKER)
+# =====================================================================
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
 async def admin_reply_to_user(bot: Client, message):
-    # അഡ്മിൻ റിപ്ലേ ചെയ്ത മെസ്സേജിന്റെ ഒറിജിനൽ ടെക്സ്റ്റ് അല്ലെങ്കിൽ ക്യാപ്ഷൻ പരിശോധിക്കുന്നു
+    # അഡ്മിൻ റിപ്ലേ ചെയ്ത ഒറിജിനൽ ലോഗ് മെസ്സേജിന്റെ ടെക്സ്റ്റ് അല്ലെങ്കിൽ ക്യാപ്ഷൻ പരിശോധിക്കുന്നു
     parent_message = message.reply_to_message
     parent_text = parent_message.text or parent_message.caption
     
     if not parent_text:
         return
         
-    # അതിൽ നിന്നും യൂസർ ഐഡി (#id12345) കണ്ടുപിടിക്കുന്നു
+    # അതിൽ നിന്നും യൂസർ ഐഡി (#id12345) റീജക്സ് (Regex) വഴി കണ്ടുപിടിക്കുന്നു
     pattern = r"#id(\d+)"
     match = re.search(pattern, parent_text)
     
     if match:
         user_id = int(match.group(1))
+        
+        # അഡ്മിൻ മീഡിയ ഫയലുകൾക്കൊപ്പം അയക്കുന്ന ക്യാപ്ഷൻ ഫോർമാറ്റ് ചെയ്യുന്നു
         reply_caption = f"<b>💬 Message From Admin:\n\n{message.caption}</b>" if message.caption else "<b>💬 Message From Admin</b>"
         
         try:
-            # അഡ്മിൻ അയക്കുന്ന മീഡിയ അനുസരിച്ച് ആനിമേഷൻ കാണിച്ച് യൂസർക്ക് അയക്കുന്നു
+            # അഡ്മിൻ തിരിച്ച് അയക്കുന്ന മീഡിയ അനുസരിച്ച് റെസ്പോൺസ് ആനിമേഷൻ കാണിച്ച് യൂസർക്ക് അയക്കുന്നു
             if message.photo:
                 await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.UPLOAD_PHOTO)
                 await bot.send_photo(chat_id=user_id, photo=message.photo.file_id, caption=reply_caption)
@@ -177,7 +135,6 @@ async def admin_reply_to_user(bot: Client, message):
                 await bot.send_sticker(chat_id=user_id, sticker=message.sticker.file_id)
             elif message.text:
                 await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.TYPING)
-                # അഡ്മിൻ നൽകിയ മറുപടി ബോട്ട് വഴി യൂസർക്ക് അയക്കുന്നു
                 await bot.send_message(
                     chat_id=user_id,
                     text=f"<b>💬 Message From Admin:\n\n{message.text}</b>"
@@ -185,7 +142,7 @@ async def admin_reply_to_user(bot: Client, message):
             else:
                 return
                 
-            # അഡ്മിന് കൺഫർമেশন നൽകുന്നു
+            # അഡ്മിന് ചാനലിൽ തന്നെ വിജയകരമായി അയച്ചു എന്ന കൺഫർമേഷൻ നൽകുന്നു
             await message.reply_text("<b>✅ മറുപടി യൂസർക്ക് വിജയകരമായി അയച്ചു!</b>")
         except Exception as e:
             await message.reply_text(f"<b>❌ മെസ്സേജ് അയക്കാൻ കഴിഞ്ഞില്ല!\nError: {e}</b>")
