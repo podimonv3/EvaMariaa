@@ -28,6 +28,16 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
+# --- 🛠️ TELEGRAM QUERY ID ERROR FIX START 🛠️ ---
+_original_answer = CallbackQuery.answer
+async def _patched_answer(self, *args, **kwargs):
+    try:
+        return await _original_answer(self, *args, **kwargs)
+    except QueryIdInvalid:
+        pass
+CallbackQuery.answer = _patched_answer
+# --- 🛠️ TELEGRAM QUERY ID ERROR FIX END 🛠️ ---
+
 BUTTONS = {}
 SPELL_CHECK = {}
 RATING = ["5.1 | IMDB", "6.2 | IMDB", "7.3 | IMDB", "8.4 | IMDB", "9.5 | IMDB", "8.3 | IMDB", "6.3 | IMDB"]
@@ -38,6 +48,7 @@ GENRES = ["fun, fact",
           "Action, Adventure",
           "Film Noir",
           "Documentary"]
+
 
 # =====================================================================
 # 1. USER SIDE: HANDLES INCOMING PM MESSAGES (TEXT, PHOTO, VIDEO, STICKER)
