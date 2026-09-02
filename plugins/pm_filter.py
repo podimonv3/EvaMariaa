@@ -569,20 +569,37 @@ async def cb_handler(client: Client, query: CallbackQuery):
                ]]
             )  
         )
-        k = await xd.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\n📘ᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\n📘ഈ ഫയൽ 10 മിനുട്ടിനുള്ളിൽ ഇവിടെ നിന്നും ഡിലീറ്റ് ആകുന്നതാണ്... ഫയൽ എവിടെങ്കിലും Forward ചെയ്ത് Download ചെയ്യുക 🤌</i></b></blockquote>")
-        await asyncio.sleep(600)
-        await xd.delete()
-        await k.delete()
-        
+        k = await xd.reply(text=f"<blockquote><b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\n📘ᴛʜɪs ᴍᴇssᴀɢᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ <b><u>10 mins</u> 🫥 <i></b>(ᴅᴜᴇ ᴛᴏ ᴄᴏᴘʏʀɪɢʜᴛ ɪssᴜᴇs)</i>.\n\n<b><i>ᴘʟᴇᴀsᴇ ғᴏʀᴡᴀʀᴅ ᴛʜɪs ᴍᴇssᴀɢᴇ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴏʀ ᴀɴʏ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.\n\n📘ഈ ഫയൽ 10 മിനുട്ടിനുള്ളിൽ ഇവിടെ നിന്നും ഡിലീറ്റ് ആകുന്നതാണ്... ഫയൽ എവിടെങ്കിലും Forward ചെയ്ത് Download ചെയ്യുക 🤌</i></b></blockquote>")  
+        # ടൈറ്റിൽ പ്രീ-ഡിവിഡി ആണോ എന്ന് നോക്കി സമയം മാറ്റുന്നു
         if title and any(keyword in title.lower() for keyword in ['predvd', 'predvdrip']):
             f_caption += "\n⚠️<b><i>ഈ മൂവിയുടെ ഫയൽ എവിടെയെങ്കിലും ഫോർവേഡ് ചെയ്തു വെക്കുക എന്നിട്ട് ഡൗൺലോഡ് ചെയ്യുക\n\n3 മിനിറ്റിൽ ഇവിടുന്ന് ഡിലീറ്റ് ആവും🗑\n\n⚠️Forward the file of this Movie somewhere and download it\n\nWill be deleted from here in 3 minutes🗑</i></b>"
             inline_keyboard = [[
-            InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+xlFmD30B2b9jNjQ1')
+                InlineKeyboardButton('⚙ ഉർവശി തീയറ്റേഴ്‌സ് ⚙', url='https://t.me/+xlFmD30B2b9jNjQ1')
             ]]
             reply_markup = InlineKeyboardMarkup(inline_keyboard)
-            await xd.edit_caption(caption=f_caption, reply_markup=reply_markup)
+            
+            # ഡിലീറ്റ് ചെയ്യുന്നതിന് മുൻപ് ക്യാപ്ഷൻ എഡിറ്റ് ചെയ്യുന്നു
+            try:
+                await xd.edit_caption(caption=f_caption, reply_markup=reply_markup)
+            except Exception as e:
+                print(f"Caption edit error: {e}")
+                
+            # പ്രീ-ഡിവിഡി ആണെങ്കിൽ 3 മിനിറ്റ് (180 സെക്കൻഡ്) മാത്രം വെയിറ്റ് ചെയ്യുന്നു
             await asyncio.sleep(180)                   
+        else:
+            # സാധാരണ ഫയൽ ആണെങ്കിൽ 10 മിനിറ്റ് (600 സെക്കൻഡ്) വെയിറ്റ് ചെയ്യുന്നു
+            await asyncio.sleep(600)
+            
+        # അവസാനമായി രണ്ട് മെസ്സേജുകളും ഡിലീറ്റ് ചെയ്യുന്നു (ഒരു തവണ മാത്രം)
+        try:
             await xd.delete()
+        except Exception:
+            pass
+            
+        try:
+            await k.delete()
+        except Exception:
+            pass
 
     elif query.data.startswith("killfilesdq"):
         ident, keyword = query.data.split("#")
