@@ -37,7 +37,7 @@ async def _patched_answer(self, *args, **kwargs):
         pass
 CallbackQuery.answer = _patched_answer
 # --- 🛠️ TELEGRAM QUERY ID ERROR FIX END 🛠️ ---
-
+BUTTON_COOLDOWNS = {}
 BUTTONS = {}
 SPELL_CHECK = {}
 RATING = ["5.1 | IMDB", "6.2 | IMDB", "7.3 | IMDB", "8.4 | IMDB", "9.5 | IMDB", "8.3 | IMDB", "6.3 | IMDB"]
@@ -177,8 +177,22 @@ async def give_filters(client, message):
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
     ident, req, key, offset = query.data.split("_")
+    
+    # 1. ബട്ടൺ അമർത്തിയത് സെർച്ച് ചെയ്ത ആൾ തന്നെയാണോ എന്ന് നോക്കുന്നു
     if int(req) not in [query.from_user.id, 0]:
         return await query.answer("Search for Yourself", show_alert=True)
+
+    # 2. കൂൾഡൗൺ പരിശോധന (സ്പാം ക്ലിക്ക് തടയാൻ)
+    user_id = query.from_user.id
+    now = datetime.now()
+    if user_id in BUTTON_COOLDOWNS and now < BUTTON_COOLDOWNS[user_id]:
+        return await query.answer("ദയവായി കുറച്ചു സമയം കാത്തിരിക്കൂ... (Slow Down)", show_alert=False)
+    
+    # 1 സെക്കൻഡ് കൂൾഡൗൺ നൽകുന്നു
+    BUTTON_COOLDOWNS[user_id] = now + timedelta(seconds=1)
+
+    # 3. ലോഡിങ് സ്പിന്നർ മാറ്റാൻ ഉടൻ തന്നെ ആൻസർ ചെയ്യുക
+    await query.answer()
 
     try:
         offset = int(offset)
@@ -190,6 +204,7 @@ async def next_page(bot, query):
         await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
         return
 
+    # ഡാറ്റാബേസ് സെർച്ച്
     files, n_offset, total = await get_search_results(search, offset=offset, filter=True)
 
     if not files:
@@ -246,13 +261,23 @@ async def next_page(bot, query):
                 InlineKeyboardButton("Nᴇxᴛ ⤷", callback_data=f"next_{req}_{key}_{n_offset}")
             ],
         )
+
+    # 4. ഫ്ലഡ് വെയ്റ്റ് കൂടി മാനേജ് ചെയ്യുന്ന മെസ്സേജ് എഡിറ്റിങ് ഭാഗം
     try:
         await query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup(btn)
         )
     except MessageNotModified:
         pass
-    await query.answer()
+    except FloodWait as e:
+        # റേറ്റ് ലിമിറ്റ് വന്നാൽ ബോട്ട് ക്രാഷാകാതെ അത്രയും സമയം വെയ്റ്റ് ചെയ്യും
+        await asyncio.sleep(e.value)
+        try:
+            await query.edit_message_reply_markup(
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+        except MessageNotModified:
+            pass
 
 
 @Client.on_callback_query()
