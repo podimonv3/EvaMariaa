@@ -771,6 +771,42 @@ async def auto_filter(client, msg, spoll=False):
             if not search:
                 return
 
+            # === CUSTOM CODE: 24 HOUR SEARCH LOGGER START ===
+            try:
+                from datetime import datetime, timedelta
+                from database.ia_filterdb import db as clientDB
+                log_db = clientDB.search_logs
+                current_time = datetime.now()
+
+                # 1. 24 മണിക്കൂർ കഴിഞ്ഞ പഴയ ഡാറ്റകൾ തനിയെ നീക്കം ചെയ്യുന്നു
+                time_limit = current_time - timedelta(hours=24)
+                await log_db.delete_many({"timestamp": {"$lt": time_limit}})
+
+                # 2. തിരഞ്ഞ വാക്ക് ഇതിനകം ഉണ്ടോ എന്ന് പരിശോധിക്കുന്നു (Case-insensitive)
+                search_query_lower = search.lower()
+                existing = await log_db.find_one({"word_lower": search_query_lower})
+
+                if existing:
+                    # മുൻപ് തിരഞ്ഞതാണെങ്കിൽ കൗണ്ട് കൂട്ടുന്നു
+                    await log_db.update_one(
+                        {"_id": existing["_id"]},
+                        {"$inc": {"count": 1}, "$set": {"timestamp": current_time}}
+                    )
+                else:
+                    # പുതിയ വാക്കാണെങ്കിൽ ഡാറ്റാബേസിലേക്ക് ചേർക്കുന്നു
+                    await log_db.insert_one({
+                        "word": search,
+                        "word_lower": search_query_lower,
+                        "count": 1,
+                        "timestamp": current_time
+                    })
+            except Exception as log_error:
+                if 'logger' in locals() or 'logger' in globals():
+                    logger.error(f"Error in search logging: {log_error}")
+                else:
+                    print(f"Error in search logging: {log_error}")
+            # === CUSTOM CODE: SEARCH LOGGER END ===
+
             # 10. ഡാറ്റാബേസിൽ തിരയുന്നു
             files, offset, total_results = await get_search_results(search, offset=0, filter=True)
             if not files:
