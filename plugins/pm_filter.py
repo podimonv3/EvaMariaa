@@ -255,56 +255,6 @@ async def next_page(bot, query):
     await query.answer()
 
 
-
-
-@Client.on_callback_query(filters.regex(r"^spolling"))
-async def advantage_spoll_choker(bot, query):
-    _, user, movie_ = query.data.split('#')  
-    
-    if int(user) != 0 and query.from_user.id != int(user):
-        return await query.answer("Search Your Own", show_alert=True)        
-        
-    if movie_ == "close_spellcheck":
-        try:
-            return await query.message.delete()        
-        except Exception:
-            return
-            
-    if not query.message.reply_to_message:
-        return await query.answer("Original message not found.", show_alert=True)        
-        
-    movies = SPELL_CHECK.get(query.message.reply_to_message.id)
-    if not movies:
-        return await query.answer("You are clicking on an old button which is expired.", show_alert=True)        
-        
-    movie = movies[int(movie_)]
-    await query.answer('Checking for Movie in database...')    
-    
-    # നമ്മൾ മുൻപ് ചെയ്ത മാറ്റം പോലെ ഗ്ലോബൽ ഫിൽട്ടറും ഓട്ടോ ഫിൽട്ടറും ഒരുമിച്ച് റൺ ചെയ്യുന്നു
-    try:
-        await global_filters(bot, query.message, text=movie)    
-    except Exception:
-        pass
-        
-    files, offset, total_results = await get_search_results(movie, offset=0, filter=True)
-    if files:
-        k = (movie, files, offset, total_results)
-        await auto_filter(bot, query.message, k)               
-    else:        
-        reqst_gle = urllib.parse.quote_plus(movie) # ഇവിടെ mv_rqst എന്നതിന് പകരം movie എന്ന് തിരുത്തി (Error വരാതിരിക്കാൻ)
-        buttons = [
-            [
-                InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")                    
-            ],
-            [
-                InlineKeyboardButton('💬 Request To Admin 💬', url='http://t.me/Promoviesearcherbot')
-            ]
-        ]
-        reply_markup = InlineKeyboardMarkup(buttons)                               
-        await query.message.edit_text(text=script.MOVREQ_TXT, reply_markup=reply_markup)
-        await asyncio.sleep(120)
-
-
 @Client.on_callback_query()
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
@@ -935,85 +885,69 @@ async def auto_filter(client, msg, spoll=False):
     await fmsg.delete()        
 
 
+# യൂസർ 'Close 🚫' ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ ബോട്ടിന്റെ മെസ്സേജ് മാത്രം ഡിലീറ്റ് ചെയ്യും
+@Client.on_callback_query(filters.regex(r'^close_data$'))
+async def close_callback_handler(client, query: CallbackQuery):
+    try:
+        # ബോട്ട് അയച്ച മെസ്സേജ് മാത്രം ഡിലീറ്റ് ചെയ്യുന്നു
+        await query.message.delete()
+    except Exception as e:
+        logger.error(f"Error in close button callback: {e}")
+
 
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
-    mv_rqst = msg.text
-    reqstr1 = msg.from_user.id if msg.from_user else 0    
+    mv_rqst = msg.text    
+    # 1. മെസ്സേജിലെ ആവശ്യമില്ലാത്ത വാക്കുകൾ ഒഴിവാക്കുന്നു (Please, send me ഒക്കെ മാറും)
     query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
-        "", msg.text, flags=re.IGNORECASE)
-    query = query.strip() + " movie"    
-    
+        "", mv_rqst, flags=re.IGNORECASE
+    )    
+    clean_title = query.strip()
+    query_with_movie = clean_title + " movie"        
     try:
-        movies = await get_poster(mv_rqst, bulk=True)
+        # സിനിമ ബോട്ടിന്റെ ഡാറ്റാബേസിൽ ഉണ്ടോ എന്ന് മാത്രം നോക്കുന്നു
+        movies = await get_poster(query_with_movie, bulk=True)
     except Exception as e:
         logger.exception(e)
-        reqst_gle = urllib.parse.quote_plus(mv_rqst)        
+        movies = None        
+    # ----------------------------------------------------
+    # സിനിമ ഇല്ലെങ്കിൽ നേരിട്ട് (Direct Reply) പുതിയ ബട്ടണുകൾ നൽകുന്നു
+    # ----------------------------------------------------
+    if not movies:
+        encoded_title = urllib.parse.quote_plus(clean_title)
+        
+        # താങ്കൾ ആവശ്യപ്പെട്ട 5 ബട്ടണുകൾ ഇവിടെ ക്രമീകരിച്ചു
         button = [
-            [InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
+            [
+                InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={encoded_title}")
+            ],
+            [
+                InlineKeyboardButton('🎬 IMDb Search', url=f"https://imdb.com/find?q={encoded_title}"),
+                InlineKeyboardButton('🎥 TMDb Search', url=f"https://themoviedb.org/search?query={encoded_title}")
+            ],
             [         
                 InlineKeyboardButton('📢 Request here 📢', url="http://t.me/Promoviesearcherbot")
+            ],
+            [
+                InlineKeyboardButton('Close 🚫', callback_data='close_data')
             ]
         ]        
-        k = await msg.reply_text(
-            text=(script.MOVREQ_TXT),
-            reply_markup=InlineKeyboardMarkup(button),
-            reply_to_message_id=msg.id
-        )
-        await asyncio.sleep(60)        
-        try:
-            await k.delete()      
-        except Exception:
-            pass
-        return        
         
-    movielist = []
-    if not movies:
-        reqst_gle = urllib.parse.quote_plus(mv_rqst)        
-        button = [
-            [InlineKeyboardButton('🔍 ꜱᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={reqst_gle}")],
-            [                
-                InlineKeyboardButton('📢 Request here 📢', url="http://t.me/Promoviesearcherbot")
-            ]
-        ]        
         k = await msg.reply_text(
-            text=(script.MOVREQ_TXT),
+            text=script.MOVREQ_TXT,
             reply_markup=InlineKeyboardMarkup(button),
-            reply_to_message_id=msg.id
+            reply_to_message_id=mv_id
         )
+        
+        # 60 സെക്കന്റിന് ശേഷം മെസ്സേജ് തനിയെ ഡിലീറ്റ് ചെയ്യും
         await asyncio.sleep(60)
         try:
             await k.delete()
         except Exception:
             pass
-        return        
-        
-    movielist += [f"{movie.get('title')}" for movie in movies]
-    SPELL_CHECK[mv_id] = movielist
-    btn = [
-        [
-            InlineKeyboardButton(
-                text=movie_name.strip(),
-                callback_data=f"spolling#{reqstr1}#{k}",
-            )
-        ]
-        for k, movie_name in enumerate(movielist)
-    ]
-    btn.append([InlineKeyboardButton(text="✘ ᴄʟᴏsᴇ ✘", callback_data=f'spolling#{reqstr1}#close_spellcheck')])
-    
-    spell_check_del = await msg.reply_text(
-        text="I Cᴏᴜʟᴅɴ'テン Fɪɴᴅ Aɴʏᴛʜɪɴɢ Rᴇʟᴀᴛᴇᴅ Tᴏ Tʜᴀᴛ. Dɪᴅ Yᴏᴜ Mᴇᴀɴ Aɴʏ Oɴᴇ Oғ Tʜᴇsᴇ?",
-        reply_markup=InlineKeyboardMarkup(btn),
-        reply_to_message_id=msg.id
-    )
-    
-    await asyncio.sleep(60)
-    try:
-        # സ്പെൽ ചെക്ക് മെസ്സേജ് മാത്രം ഡിലീറ്റ് ആക്കുന്നു (യൂസറുടെ മെസ്സേജ് ഡിലീറ്റ് ആകില്ല)
-        await spell_check_del.delete()
-    except Exception:
-        pass
+        return
+
 
 async def global_filters(client, message, text=False):
     group_id = message.chat.id
