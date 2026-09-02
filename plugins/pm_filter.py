@@ -963,29 +963,28 @@ async def close_callback_handler(client, query: CallbackQuery):
         logger.error(f"Error in close button callback: {e}")
 
 
+
 async def advantage_spell_chok(client, msg):
     mv_id = msg.id
     mv_rqst = msg.text    
-    # 1. മെസ്സേജിലെ ആവശ്യമില്ലാത്ത വാക്കുകൾ ഒഴിവാക്കുന്നു (Please, send me ഒക്കെ മാറും)
+    
+    # 1. മെസ്സേജിലെ ആവശ്യമില്ലാത്ത വാക്കുകൾ ഒഴിവാക്കുന്നു
     query = re.sub(
         r"\b(pl(i|e)*?(s|z+|ease|se|ese|(e+)s(e)?)|((send|snd|giv(e)?|gib)(\sme)?)|movie(s)?|new|latest|br((o|u)h?)*|^h(e|a)?(l)*(o)*|mal(ayalam)?|t(h)?amil|file|that|find|und(o)*|kit(t(i|y)?)?o(w)?|thar(u)?(o)*w?|kittum(o)*|aya(k)*(um(o)*)?|full\smovie|any(one)|with\ssubtitle(s)?)",
         "", mv_rqst, flags=re.IGNORECASE
     )    
     clean_title = query.strip()
-    query_with_movie = clean_title + " movie"        
-    try:
-        # സിനിമ ബോട്ടിന്റെ ഡാറ്റാബേസിൽ ഉണ്ടോ എന്ന് മാത്രം നോക്കുന്നു
-        movies = await get_poster(query_with_movie, bulk=True)
-    except Exception as e:
-        logger.exception(e)
-        movies = None        
+    
+    # ഡാറ്റാബേസ് സെർച്ചിങ് പൂർണ്ണമായി ഒഴിവാക്കാൻ സിനിമകൾ ഇല്ല (None) എന്ന് നേരിട്ട് ഉറപ്പിക്കുന്നു
+    movies = None        
+    
     # ----------------------------------------------------
     # സിനിമ ഇല്ലെങ്കിൽ നേരിട്ട് (Direct Reply) പുതിയ ബട്ടണുകൾ നൽകുന്നു
     # ----------------------------------------------------
     if not movies:
         encoded_title = urllib.parse.quote_plus(clean_title)
         
-        # താങ്കൾ ആവശ്യപ്പെട്ട 5 ബട്ടണുകൾ ഇവിടെ ക്രമീകരിച്ചു
+        # നിങ്ങൾ ആവശ്യപ്പെട്ട 5 ബട്ടണുകൾ ഇവിടെ കൃത്യമായി ക്രമീകരിച്ചിരിക്കുന്നു
         button = [
             [
                 InlineKeyboardButton('🔍 sᴇᴀʀᴄʜ ᴏɴ ɢᴏᴏɢʟᴇ 🔎', url=f"https://www.google.com/search?q={encoded_title}")
@@ -995,7 +994,7 @@ async def advantage_spell_chok(client, msg):
                 InlineKeyboardButton('🎥 TMDb Search', url=f"https://themoviedb.org/search?query={encoded_title}")
             ],
             [         
-                InlineKeyboardButton('🗣️ RequestAdmin', url="http://t.me/Promoviesearcherbot"),
+                InlineKeyboardButton('🗣️ RequestAdmin', url="http://t.me/Promoviesearcherbot"), # ഇവിടെ നിങ്ങളുടെ മെയിൻ ചാനൽ ലിങ്ക് നൽകാം
                 InlineKeyboardButton('🚫 Close', callback_data='close_data')
             ]
         ]        
@@ -1013,6 +1012,7 @@ async def advantage_spell_chok(client, msg):
         except Exception:
             pass
         return
+
 
 
 async def global_filters(client, message, text=False):
