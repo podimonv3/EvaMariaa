@@ -927,10 +927,8 @@ async def advantage_spell_chok(client, msg):
                 InlineKeyboardButton('🎥 TMDb Search', url=f"https://themoviedb.org/search?query={encoded_title}")
             ],
             [         
-                InlineKeyboardButton('📢 Request here 📢', url="http://t.me/Promoviesearcherbot")
-            ],
-            [
-                InlineKeyboardButton('Close 🚫', callback_data='close_data')
+                InlineKeyboardButton('🗣️ RequestAdmin', url="http://t.me/Promoviesearcherbot"),
+                InlineKeyboardButton('🚫 Close', callback_data='close_data')
             ]
         ]        
         
