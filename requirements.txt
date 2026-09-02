@@ -1,4 +1,4 @@
-git+https://github.com/agronholm/anyio
+anyio
 tgcrypto
 aiohttp
 pymongo[srv]==4.3.3
