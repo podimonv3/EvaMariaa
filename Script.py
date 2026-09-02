@@ -54,20 +54,14 @@ Name - {}
 
     
     MOVREQ_TXT = """<b><i><u>🚸Instructions🚸</u></b></i>
-
-<blockquote><b><i>🌿 Request Movies/Series in English language only.
-🌿 Do not waste time asking for unreleased movies.
-🌿 Just send the Movie Name and Year.And Language
-🌿 Do not use stylish or fancy fonts.</b></i>
-🥵 𝙈𝙪𝙨𝙩 𝘾𝙝𝙚𝙘𝙠 𝙎𝙥𝙚𝙡𝙡𝙞𝙣𝙜 𝙒𝙞𝙩𝙝 𝘼𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝘽𝙪𝙩𝙩𝙤𝙣𝙨 𝙖𝙣𝙙 𝙘𝙤𝙥𝙮 𝙥𝙖𝙨𝙩𝙚 𝙝𝙚𝙧𝙚👇</blockquote>
+<b><i>🌿 Request Movies/Series in English language only.
+🌿 Do not waste time asking for unreleased OTT 🎉 movies</b></i>
+🥵 𝙈𝙪𝙨𝙩 𝘾𝙝𝙚𝙘𝙠 𝙎𝙥𝙚𝙡𝙡𝙞𝙣𝙜 𝙒𝙞𝙩𝙝 𝘼𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝘽𝙪𝙩𝙩𝙤𝙣𝙨 𝙖𝙣𝙙 𝙘𝙤𝙥𝙮 𝙥𝙖𝙨𝙩𝙚 𝙝𝙚𝙧𝙚👇
 
 <b><i><u>🚸നിർദ്ദേശങ്ങൾ🚸</u></b></i>
-
-<b><blockquote><i>🌿 ഇംഗ്ലീഷ് ഭാഷയിൽ തന്നെ movies/Series റിക്വസ്റ്റ് ചെയ്യുക 
-🌿 റിലീസ് ആവാത്ത മൂവീസ് ചോദിച്ചു സമയം കളയണ്ട കിട്ടില്ല 🚫
-🌿 സിനിമയുടെ പേര് വർഷം എന്നിവ മാത്രം അയച്ചാൽ മതി (വേണമെങ്കിൽ ഭാഷ🫴)
-🌿 സ്റ്റൈലിഷ് അക്ഷരങ്ങൾ ഉപയോഗിക്കരുത്</i>
-<u>🥵 പ്രധാനമായും താഴെയുള്ള ബട്ടനുകൾ ഉപയോഗിച്ച് സ്പെല്ലിങ് കറക്റ്റ് ആണോന്നു നോക്കി ഇവിടെ കോപ്പി പേസ്റ്റ് ചെയ്യുക</b></u><blockquote>"""
+<b><i>🌿 ഇംഗ്ലീഷ് ഭാഷയിൽ തന്നെ movies/Series റിക്വസ്റ്റ് ചെയ്യുക 
+🌿 OTT റിലീസ് ആവാത്ത മൂവീസ് ചോദിച്ചു സമയം കളയണ്ട കിട്ടില്ല 🚫
+🥵 പ്രധാനമായും താഴെയുള്ള ബട്ടനുകൾ ഉപയോഗിച്ച് സ്പെല്ലിങ് കറക്റ്റ് ആണോന്നു നോക്കി ഇവിടെ കോപ്പി പേസ്റ്റ് ചെയ്യുക</b></i></blockquote>"""
     
     NORSLTS = """𝗜𝗗 <b>: {}</b>
 𝗡𝗮𝗺𝗲 <b>: {}</b>
