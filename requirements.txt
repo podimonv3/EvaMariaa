@@ -7,7 +7,7 @@ motor==3.1.1
 umongo==3.1.0
 requests
 bs4
-cinemagoer
+git+https://github.com/Joelkb/cinemagoer
 datetime
 psutil
 python-dotenv
