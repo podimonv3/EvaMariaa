@@ -24,9 +24,10 @@ from database.filters_mdb import (
 )
 from database.gfilters_mdb import find_gfilter, get_gfilters
 import logging
-
+from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
+
 
 # --- 🛠️ TELEGRAM QUERY ID ERROR FIX START 🛠️ ---
 _original_answer = CallbackQuery.answer
@@ -37,6 +38,10 @@ async def _patched_answer(self, *args, **kwargs):
         pass
 CallbackQuery.answer = _patched_answer
 # --- 🛠️ TELEGRAM QUERY ID ERROR FIX END 🛠️ ---
+
+
+
+
 BUTTON_COOLDOWNS = {}
 BUTTONS = {}
 SPELL_CHECK = {}
