@@ -53,7 +53,7 @@ Name - {}
 𝖭𝖡: 𝖸𝗈𝗎𝗋 𝖱𝖾𝗊𝗎𝖾𝗌𝗍 𝖮𝗇𝗅𝗒 𝖨𝗇 𝖬𝗒 𝖬𝗈𝗏𝗂𝖾𝗌 𝖦𝗋𝗈𝗎𝗉 𝖫𝗂𝗇𝗄 𝖢𝗁𝖾𝖼𝗄 𝗂𝗇 𝖠𝖻𝗈𝗏𝖾..!!</b>"""
 
     
-    MOVREQ_TXT = """<b><i><u>🚸Instructions🚸</u></b></i>
+    MOVREQ_TXT = """<blockquote><b><i><u>🚸Instructions🚸</u></b></i>
 <b><i>🌿 Request Movies/Series in English language only.
 🌿 Do not waste time asking for unreleased OTT 🎉 movies</b></i>
 🥵 𝙈𝙪𝙨𝙩 𝘾𝙝𝙚𝙘𝙠 𝙎𝙥𝙚𝙡𝙡𝙞𝙣𝙜 𝙒𝙞𝙩𝙝 𝘼𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝘽𝙪𝙩𝙩𝙤𝙣𝙨 𝙖𝙣𝙙 𝙘𝙤𝙥𝙮 𝙥𝙖𝙨𝙩𝙚 𝙝𝙚𝙧𝙚👇
