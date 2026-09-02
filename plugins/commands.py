@@ -19,6 +19,9 @@ import re
 import json
 import base64
 import pymongo
+from datetime import datetime, timedelta
+from database.ia_filterdb import db as clientDB
+
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
@@ -944,3 +947,46 @@ async def delete_duplicate_files(client, message):
     
     # Send a final message indicating the total number of duplicates deleted
     await message.reply(f"Deleted {deleted_count} duplicate files. in {batch_size} batches")
+
+
+
+@Client.on_message(filters.command("getlog") & filters.user(ADMINS))
+async def send_log_file(client: Client, message: Message):
+    log_db = clientDB.search_logs
+    current_time = datetime.now()
+    time_limit = current_time - timedelta(hours=24)
+    
+    try:
+        # 24 മണിക്കൂറിൽ കൂടുതൽ പഴക്കമുള്ള ഡാറ്റകൾ ഇവിടെ വെച്ചും ഡിലീറ്റ് ചെയ്യും
+        await log_db.delete_many({"timestamp": {"$lt": time_limit}})
+        
+        # ഏറ്റവും കൂടുതൽ ആളുകൾ തിരഞ്ഞ വാക്കുകൾ ആദ്യം വരുന്ന രീതിയിൽ (Highest Count First) എടുക്കുന്നു
+        logs = await log_db.find().sort("count", -1).to_list(1000)
+        
+        if not logs:
+            await message.reply_text("<b>കഴിഞ്ഞ 24 മണിക്കൂറിൽ സെർച്ചുകൾ ഒന്നും റെക്കോർഡ് ചെയ്യപ്പെട്ടിട്ടില്ല! ❌</b>")
+            return
+
+        file_name = "telegram_messages.txt"
+        
+        # നിങ്ങൾ ആവശ്യപ്പെട്ട 'superman (5)' എന്ന ലളിതമായ ഫോർമാറ്റിൽ ഫയൽ നിർമ്മിക്കുന്നു
+        with open(file_name, "w", encoding="utf-8") as f:
+            for log in logs:
+                f.write(f"{log['word']} ({log['count']})\n")
+                
+        # ബോട്ട് അപ്‌ലോഡ് ആനിമേഷൻ കാണിക്കുന്നു
+        await client.send_chat_action(chat_id=message.chat.id, action=enums.ChatAction.UPLOAD_DOCUMENT)
+        
+        # ഫയൽ അഡ്മിന് അയച്ചു കൊടുക്കുന്നു
+        await message.reply_document(
+            document=file_name,
+            caption="<b>📅 കഴിഞ്ഞ 24 മണിക്കൂറിലെ യൂസർ സെർച്ച് കൗണ്ട് ലിസ്റ്റ് താഴെ നൽകുന്നു (Trending First).</b>"
+        )
+        
+        # താൽക്കാലികമായി ലോക്കലിൽ ഉണ്ടാക്കിയ ഫയൽ ഡിലീറ്റ് ചെയ്യുന്നു
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            
+    except Exception as e:
+        await message.reply_text(f"<b>❌ ഒരു എറർ സംഭവിച്ചു!\nError: {e}</b>")
+# === CUSTOM CODE: GETLOG COMMAND END ===
