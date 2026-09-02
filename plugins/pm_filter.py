@@ -752,7 +752,7 @@ async def auto_filter(client, msg, spoll=False):
             # 6. ഒട്ടിനിൽക്കുന്ന സിനിമ വാക്കുകൾ മാറ്റുന്നു (\b ചേർത്തതു കൊണ്ട് വാക്ക് പൂർണ്ണമാണെങ്കിൽ മാത്രമേ മാറൂ)
             search = re.sub(r"\b(movie(s)?|hd|full|print|file)\b", "", search, flags=re.IGNORECASE)                       
                                    
-            # 7 & 8. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ഫിൽട്ടർ ചെയ്യുന്നു
+            # 7 & 8. [വേഗത കൂട്ടിയ ഭാഗം] വലിയ ലൂപ്പും വലിയ Regex-ും ഒഴിവാക്കി, ഒരൊറ്റ സെറ്റ് (Set) വഴി വാക്കുകൾ ফിൽട്ടർ ചെയ്യുന്നു
             find = search.split(" ")
             removes = {
                 "pls", "plz", "please", "send", "snd", 
@@ -774,40 +774,42 @@ async def auto_filter(client, msg, spoll=False):
             # 10. ഡാറ്റാബേസിൽ തിരയുന്നു
             files, offset, total_results = await get_search_results(search, offset=0, filter=True)
             if not files:
-                # === CUSTOM CODE: കിട്ടാത്ത ഫയലുകൾ മാത്രം ഡാറ്റാബേസിൽ സേവ് ചെയ്യുന്നു ===
-                try:
-                    from datetime import datetime, timedelta
-                    from database.ia_filterdb import db as clientDB
-                    log_db = clientDB.search_logs
-                    current_time = datetime.now()
+                # === CUSTOM CODE: ഗ്രൂപ്പുകളിൽ നിന്നുള്ള കിട്ടാത്ത ഫയലുകൾ മാത്രം സേവ് ചെയ്യുന്നു ===
+                from pyrogram import enums
+                if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+                    try:
+                        from datetime import datetime, timedelta
+                        from database.ia_filterdb import db as clientDB
+                        log_db = clientDB.search_logs
+                        current_time = datetime.now()
 
-                    # 24 മണിക്കൂർ കഴിഞ്ഞ പഴയ ലോഗുകൾ നീക്കം ചെയ്യുന്നു
-                    time_limit = current_time - timedelta(hours=24)
-                    await log_db.delete_many({"timestamp": {"$lt": time_limit}})
+                        # 24 മണിക്കൂർ കഴിഞ്ഞ പഴയ ലോഗുകൾ നീക്കം ചെയ്യുന്നു
+                        time_limit = current_time - timedelta(hours=24)
+                        await log_db.delete_many({"timestamp": {"$lt": time_limit}})
 
-                    # വാക്ക് നിലവിലുണ്ടോ എന്ന് നോക്കുന്നു (Case-insensitive)
-                    search_query_lower = search.lower()
-                    existing = await log_db.find_one({"word_lower": search_query_lower})
+                        # വാക്ക് നിലവിലുണ്ടോ എന്ന് നോക്കുന്നു (Case-insensitive)
+                        search_query_lower = search.lower()
+                        existing = await log_db.find_one({"word_lower": search_query_lower})
 
-                    if existing:
-                        # കൗണ്ട് 1 കൂട്ടുന്നു
-                        await log_db.update_one(
-                            {"_id": existing["_id"]},
-                            {"$inc": {"count": 1}, "$set": {"timestamp": current_time}}
-                        )
-                    else:
-                        # പുതുതായി ഡാറ്റാബേസിലേക്ക് ചേർക്കുന്നു
-                        await log_db.insert_one({
-                            "word": search,
-                            "word_lower": search_query_lower,
-                            "count": 1,
-                            "timestamp": current_time
-                        })
-                except Exception as log_error:
-                    if 'logger' in locals() or 'logger' in globals():
-                        logger.error(f"Error in search logging: {log_error}")
-                    else:
-                        print(f"Error in search logging: {log_error}")
+                        if existing:
+                            # കൗണ്ട് 1 കൂട്ടുന്നു
+                            await log_db.update_one(
+                                {"_id": existing["_id"]},
+                                {"$inc": {"count": 1}, "$set": {"timestamp": current_time}}
+                            )
+                        else:
+                            # പുതുതായി ഡാറ്റാബേസിലേക്ക് ചേർക്കുന്നു
+                            await log_db.insert_one({
+                                "word": search,
+                                "word_lower": search_query_lower,
+                                "count": 1,
+                                "timestamp": current_time
+                            })
+                    except Exception as log_error:
+                        if 'logger' in locals() or 'logger' in globals():
+                            logger.error(f"Error in search logging: {log_error}")
+                        else:
+                            print(f"Error in search logging: {log_error}")
                 # === CUSTOM CODE END ===
 
                 if settings["spell_check"]:
