@@ -122,25 +122,20 @@ async def pm_text(bot: Client, message):
 # =====================================================================
 @Client.on_message(filters.chat(LOG_CHANNEL) & filters.reply)
 async def admin_reply_to_user(bot: Client, message):
-    # അഡ്മിൻ റിപ്ലേ ചെയ്ത ഒറിജിനൽ ലോഗ് മെസ്സേജിന്റെ ടെക്സ്റ്റ് അല്ലെങ്കിൽ ക്യാപ്ഷൻ പരിശോധിക്കുന്നു
     parent_message = message.reply_to_message
     parent_text = parent_message.text or parent_message.caption
     
     if not parent_text:
         return
         
-    # അതിൽ നിന്നും യൂസർ ഐഡി (#id12345) റീജക്സ് (Regex) വഴി കണ്ടുപിടിക്കുന്നു
     pattern = r"#id(\d+)"
     match = re.search(pattern, parent_text)
     
     if match:
         user_id = int(match.group(1))
-        
-        # അഡ്മിൻ മീഡിയ ഫയലുകൾക്കൊപ്പം അയക്കുന്ന ക്യാപ്ഷൻ ഫോർമാറ്റ് ചെയ്യുന്നു
         reply_caption = f"<b>💬 Message From Admin:\n\n{message.caption}</b>" if message.caption else "<b>💬 Message From Admin</b>"
         
         try:
-            # അഡ്മിൻ തിരിച്ച് അയക്കുന്ന മീഡിയ അനുസരിച്ച് റെസ്പോൺസ് ആനിമേഷൻ കാണിച്ച് യൂസർക്ക് അയക്കുന്നു
             if message.photo:
                 await bot.send_chat_action(chat_id=user_id, action=enums.ChatAction.UPLOAD_PHOTO)
                 await bot.send_photo(chat_id=user_id, photo=message.photo.file_id, caption=reply_caption)
@@ -158,10 +153,15 @@ async def admin_reply_to_user(bot: Client, message):
             else:
                 return
                 
-            # അഡ്മിന് ചാനലിൽ തന്നെ വിജയകരമായി അയച്ചു എന്ന കൺഫർമേഷൻ നൽകുന്നു
             await message.reply_text("<b>✅ മറുപടി യൂസർക്ക് വിജയകരമായി അയച്ചു!</b>")
+            
+        except UserIsBlocked:
+            # യൂസർ ബോട്ട് ബ്ലോക്ക് ചെയ്തിട്ടുണ്ടെങ്കിൽ അഡ്മിന് ഈ മെസ്സേജ് കാണിക്കും
+            await message.reply_text("<b>❌ മറുപടി അയക്കാൻ കഴിഞ്ഞില്ല! ഈ യൂസർ ബോട്ടിനെ ബ്ലോക്ക് ചെയ്തിരിക്കുകയാണ്.</b>")
+            
         except Exception as e:
             await message.reply_text(f"<b>❌ മെസ്സേജ് അയക്കാൻ കഴിഞ്ഞില്ല!\nError: {e}</b>")
+
 
 
 
