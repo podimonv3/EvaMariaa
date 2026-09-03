@@ -2,7 +2,7 @@ import logging
 import asyncio
 from pyrogram import Client, filters, enums
 from pyrogram.errors import FloodWait
-from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, ChatAdminRequired, UsernameInvalid, UsernameNotModified
+from pyrogram.errors.exceptions.bad_request_400 import ChannelInvalid, ChatAdminRequired, UsernameInvalid, UsernameNotModified, ChannelPrivate
 from info import ADMINS
 from info import INDEX_REQ_CHANNEL as LOG_CHANNEL
 from database.ia_filterdb import save_file, save_filea, check_file
@@ -103,27 +103,31 @@ async def send_for_index(bot, message):
         last_msg_id = int(match.group(5))
         if chat_id.isnumeric():
             chat_id  = int(("-100" + chat_id))
-        # പഴയ വരിക്ക് പകരം ഈ വരി ഉപയോഗിക്കുക:
     elif message.forward_from_chat and message.forward_from_chat.type == enums.ChatType.CHANNEL:
         last_msg_id = message.forward_from_message_id
         chat_id = message.forward_from_chat.username or message.forward_from_chat.id
     else:
         return
+
+    # ഇവിടെയാണ് നമ്മൾ എറർ വരാതെ മാറ്റങ്ങൾ വരുത്തിയത്
     try:
         await bot.get_chat(chat_id)
-    except ChannelInvalid:
-        return await message.reply('This may be a private channel / group. Make me an admin over there to index the files.')
+    except (ChannelPrivate, ChannelInvalid):
+        return await message.reply('This is a private channel / group. Please make me an admin over there to index the files.')
     except (UsernameInvalid, UsernameNotModified):
         return await message.reply('Invalid Link specified.')
     except Exception as e:
         logger.exception(e)
         return await message.reply(f'Errors - {e}')
+
     try:
         k = await bot.get_messages(chat_id, last_msg_id)
-    except:
+    except Exception:
         return await message.reply('Make Sure That Iam An Admin In The Channel, if channel is private')
+        
     if k.empty:
         return await message.reply('This may be group and iam not a admin of the group.')
+
 
     if message.from_user.id in ADMINS:
         buttons = [
